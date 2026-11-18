@@ -29,6 +29,7 @@ let chartPlots = () => [];
 const BTN = 18;                    // button size (px)
 let WS = null;
 const wired = new WeakMap();       // cell host element -> per-cell controller
+const live = new Set();            // the same controllers, so wireAll can drop the ones whose cell is gone
 let menu = null, menuSub = null;
 
 // ---------------------------------------------------------------------------------------
@@ -190,8 +191,11 @@ function wire(cell){
   };
   let ro = null;
   try { ro = new ResizeObserver(dirty); ro.observe(host); if (R.input && R.input.el) ro.observe(R.input.el); } catch (e) {}
-  window.addEventListener('resize', dirty, { passive: true });
-  window.addEventListener('scroll', dirty, { passive: true, capture: true });
+  // window listeners die with the cell: left on, they held every destroyed chart (renderer + all its canvases) for good
+  // (member GK 18 Nov: RAM/GPU climbed with each workspace switch, ~70 MP of canvas pinned per round trip)
+  const ac = new AbortController();
+  window.addEventListener('resize', dirty, { passive: true, signal: ac.signal });
+  window.addEventListener('scroll', dirty, { passive: true, capture: true, signal: ac.signal });
   // the button moves with a compositor-only transform, written only when the rounded spot changes
   const place = (yPlot) => {
     const g = geo(); if (!g) return false;
@@ -288,9 +292,18 @@ function wire(cell){
     }
     clearTimeout(st.hideT);
   });
-  wired.set(host, { btn, off, st, ro });
+  const ctl = { btn, off, st, ro, host, ac };
+  wired.set(host, ctl); live.add(ctl);
+}
+function unwire(ctl){
+  live.delete(ctl); wired.delete(ctl.host);
+  try { ctl.ac.abort(); } catch (e) {}
+  try { if (ctl.ro) ctl.ro.disconnect(); } catch (e) {}
+  try { if (typeof ctl.off === 'function') ctl.off(); } catch (e) {}
+  clearTimeout(ctl.st.hideT);
 }
 function wireAll(){
+  for (const ctl of live) if (!ctl.host.isConnected) unwire(ctl);
   if (!WS) return;
   try { for (const c of WS.context().cells || []) { const cell = WS.cell(c.id); if (cell) wire(cell); } } catch (e) {}
 }

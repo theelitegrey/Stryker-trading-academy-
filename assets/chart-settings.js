@@ -186,7 +186,8 @@ function hookCell(cell){
   // the days list depends on the timeframe: rebuild our rows when it changes
   try { cell.chart.on('market:changed', () => setTimeout(() => { try { cell.pushSettingsSections(); } catch (e) {} }, 0)); } catch (e) {}
   // phone price-scale width follows the labels (symbol switch, a price crossing 9999 -> 10000, rotation)
-  if (!cell.__stkAxisTimer) cell.__stkAxisTimer = setInterval(() => { if (!document.hidden) syncPhone(cell); }, 2000);
+  // stops with the cell: a timer left running held the destroyed chart (renderer + canvases) for good (member GK 18 Nov, RAM per workspace switch)
+  if (!cell.__stkAxisTimer) cell.__stkAxisTimer = setInterval(() => { if (cell.destroyed) { clearInterval(cell.__stkAxisTimer); return; } if (!document.hidden) syncPhone(cell); }, 2000);
   // Vela's own "Symbol watermark" on/off is replaced by our Hidden / Symbol / Symbol + interval row.
   try { rc.setSettingsVisibility({ hidden: ['watermark'] }); } catch (e) {}
   try { cell.pushSettingsSections(); } catch (e) {}

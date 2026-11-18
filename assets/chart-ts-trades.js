@@ -266,7 +266,7 @@ function tsBigLayer() {
       }
       BT.draw(canvas, a, memo.sel, I, s.tick, H);
     },
-    destroy() { canvas = null; }
+    destroy() { BT.uninstallTip(canvas); canvas = null; }
   };
 }
 

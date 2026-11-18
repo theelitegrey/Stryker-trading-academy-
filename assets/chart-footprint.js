@@ -1120,7 +1120,7 @@ function bigLayer() {
       }
       BT.draw(canvas, a, memo.sel, I, f.tick, { frame, idxOf, alpha, light, replayE, MONO });
     },
-    destroy() { canvas = null; }
+    destroy() { BT.uninstallTip(canvas); canvas = null; }
   };
 }
 

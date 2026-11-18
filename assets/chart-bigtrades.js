@@ -250,6 +250,9 @@ function tipMove(e) {   // one document listener for every Big Trades canvas (tw
     tipEl.hidden = false;
     tipEl.style.left = clamp(e.clientX + 12, 4, innerWidth - 250) + 'px'; tipEl.style.top = clamp(e.clientY + 12, 4, innerHeight - 130) + 'px';
 }
+// the layer's destroy() hands its canvas back: kept in the set, it held that whole chart (renderer + every canvas) after a
+// workspace switch (member GK 18 Nov, RAM/GPU per switch)
+export function uninstallTip(canvas) { if (canvas) { tipCanvases.delete(canvas); hits.delete(canvas); } }
 export function installTip(canvas) {
   if (!canvas) return;
   tipCanvases.add(canvas);

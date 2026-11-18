@@ -311,6 +311,8 @@ function wrapLayerEntry(entry, ownerOf){
 // ── store ───────────────────────────────────────────────────────────────────
 const recs = new Map();        // record -> { orch, style }
 const orchs = new Set();
+const gone = new WeakSet();   // destroyed charts: never added back by a late applyModel
+function forget(orch){ gone.add(orch); orchs.delete(orch); for (const [rec, e] of recs) if (e.orch === orch) recs.delete(rec); }
 const pending = new WeakMap(); // orchestrator -> [{ k, i, s }] from a restored layout
 let wsRef = null;
 const clone = (o) => JSON.parse(JSON.stringify(o || {}));
@@ -407,18 +409,22 @@ function patchSceneProto(orch){
   } catch (e) {}
 }
 function wrapOrchestrator(orch){
-  if (!orch || orchs.has(orch)) return;
+  if (!orch || orchs.has(orch) || gone.has(orch)) return;
   orchs.add(orch);
   const proto = Object.getPrototypeOf(orch);
   if (!proto || proto.__stkIndStyle || typeof proto.applyModel !== 'function') return;
   proto.__stkIndStyle = true;
+  // a destroyed chart is forgotten: orchs / recs / lastTf held every chart ever made, with its renderer and canvases (member GK
+  // 18 Nov, RAM + GPU up since workspaces became tabs: each switch rebuilds the cells, ~85 MP of canvas pinned per switch)
+  const destroy = proto.destroy;
+  if (typeof destroy === 'function') proto.destroy = function (){ try { forget(this); } catch (e) {} return destroy.apply(this, arguments); };
   const orig = proto.applyModel;
   proto.applyModel = function (id, model){
     let out = model;
     try {
-      orchs.add(this);
+      if (!gone.has(this)) orchs.add(this);
       const rec = this.registry.get(id);
-      if (rec && model) {
+      if (rec && model && !gone.has(this)) {
         rec.__stkRaw = model;
         const e = entryOf(this, rec);
         if (e.style) out = applyStyle(model, e.style, tfOf(this));
@@ -812,7 +818,7 @@ export function mountIndStyle(ws){
   try { ws.on('layout:changed', () => setTimeout(apply, 0)); } catch (e) {}
   try { ws.on('state:changed', apply); } catch (e) {}
   // A timeframe switch re-runs most indicators; re-apply Visibility for the ones that do not.
-  let lastTf = new Map();
+  const lastTf = new WeakMap();
   setInterval(() => {
     for (const o of orchs) {
       const tf = tfOf(o);

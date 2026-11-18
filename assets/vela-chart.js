@@ -968,6 +968,26 @@ function visualOrder(R) {
     return runStackItem.apply(this, arguments);
   };
 }
+// PULSING DOTS RELEASED ON DESTROY (member GK 18 Nov, RAM/GPU up per workspace switch): the legend status dots and the bar-load
+// dots run infinite Web Animations. Removing their element does not end them, and a running animation is held by the document
+// timeline, so each destroyed chart (renderer, every canvas, GL context) stayed alive for good. Cancel them before Vela tears down.
+const stopAnims = (el) => { try { if (el) for (const a of el.getAnimations({ subtree: true })) a.cancel(); } catch (e) {} };
+function stopDots(R) {
+  const rp = R && Object.getPrototypeOf(R);
+  if (rp && !rp.__stkDots && typeof rp.destroy === 'function') {
+    rp.__stkDots = true;
+    const d = rp.destroy;
+    rp.destroy = function () { stopAnims(this.loadingEl); return d.apply(this, arguments); };
+  }
+  const ip = R && R.inputsUI && Object.getPrototypeOf(R.inputsUI);
+  if (ip && !ip.__stkDots && typeof ip.destroy === 'function') {
+    ip.__stkDots = true;
+    const d = ip.destroy;
+    ip.destroy = function () { try { for (const r of this.rows.values()) stopAnims(r.statusEl); for (const lg of this.legends.values()) stopAnims(lg); } catch (e) {} return d.apply(this, arguments); };
+    const rm = ip.remove;   // an indicator removed (also every one on teardown): its row's dots go with it
+    if (typeof rm === 'function') ip.remove = function (id) { try { const r = this.rows.get(id); if (r) stopAnims(r.statusEl); } catch (e) {} return rm.apply(this, arguments); };
+  }
+}
 // LEGEND FOLDED BY DEFAULT (Owner 2026-11-17): on every device the indicator legend starts as one
 // "⌄ Indicators (N)" toggle; a click unfolds every pane's rows (Vela's own chart-wide fold), a click
 // folds them again, and the choice is remembered on this device. Vela's fold state follows the saved
@@ -1008,7 +1028,7 @@ function legendFold(R) {
 
 // LATE LAYERS (see lateLayers): patch the renderer prototype once (shared by every cell, so grid
   // cells added later are covered too).
-  try { for (const c of ws.context().cells) { const r = c.chart.renderer; const R = r && r.extLayers ? r : r && r.renderer; lateLayers(R); visualOrder(R); legendFold(R); R && R.inputsUI && R.inputsUI.syncFoldToggle(); } } catch (e) { console.warn('TradeZoro: late layers', e); }
+  try { for (const c of ws.context().cells) { const r = c.chart.renderer; const R = r && r.extLayers ? r : r && r.renderer; lateLayers(R); visualOrder(R); legendFold(R); stopDots(R); R && R.inputsUI && R.inputsUI.syncFoldToggle(); } } catch (e) { console.warn('TradeZoro: late layers', e); }
 
   // charts?symbol=NQ&date=2026-10-28 (from /market-stats): open that session on the chart.
   if (MSess && !BT) { try { MSess.openSessionFromLink(ws); } catch (e) { console.warn('TradeZoro: market stats link', e); } }

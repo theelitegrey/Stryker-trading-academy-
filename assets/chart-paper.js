@@ -1879,6 +1879,16 @@ html.stklv-on .stkpt-badge{ display:none; }
 .stkpt.in-bar .stkpt-head{ display:none; }
 .stkpt.in-bar.open .stkpt-head{ display:none; }
 @media (max-width:1279px){ .vela-widget-bottombar .stkpt-hsum{ display:none; } }
+/* Bottom-bar squeeze (member report 1572555568923549717, MacBook 14"): nothing wraps per letter. Every item keeps its size (flex-shrink 0, nowrap);
+   only the Equity summary may shrink (ellipsis), then whole low-priority items hide by the BAR's own width; overflow is clipped, never wrapped. */
+.vela-widget-bottombar{ container:vbb / inline-size; overflow:hidden; min-width:0; }
+.vela-widget-bottombar, .vela-widget-bottombar *{ white-space:nowrap; overflow-wrap:normal; word-break:keep-all; }
+.vela-widget-bottombar > :not(.vela-bb-spacer){ flex-shrink:0; }
+.vela-widget-bottombar .stkpt-bb{ min-width:0; flex-shrink:1; overflow:hidden; }
+.vela-widget-bottombar .stkpt-bb > *{ flex-shrink:0; } .vela-widget-bottombar .stkpt-bb > .stkpt-hsum{ flex-shrink:1; }
+@container vbb (max-width:1480px){ .vela-widget-bottombar .stkpt-hsum{ display:none; } }
+@container vbb (max-width:1000px){ .vela-widget-bottombar .stklat-chip, .vela-widget-bottombar .stkai-bb{ display:none; } }
+@container vbb (max-width:760px){ .vela-widget-bottombar .vela-bb-range:nth-child(4), .vela-widget-bottombar .vela-bb-range:nth-child(5){ display:none; } }
 @media (max-width:1179px){ .vela-widget-bottombar .vela-bb-range:nth-child(7), .vela-widget-bottombar .vela-bb-range:nth-child(8){ display:none; } }
 .stkpt{ flex:none; margin:0; padding:0; min-height:0; max-width:none; border-radius:0; position:relative; z-index:35; display:flex; flex-direction:column; background:var(--bg-0); border-top:1px solid var(--line-soft); color:var(--ink-1); font:13px/1.4 var(--font-body, Archivo, system-ui, sans-serif); }
 .stkpt-head{ display:flex; align-items:center; gap:10px; min-height:36px; padding:3px 8px; min-width:0; }

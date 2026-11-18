@@ -27,6 +27,7 @@ const CSS = `
 .byo-head{ display:flex; align-items:center; gap:8px; padding:12px 16px 8px 20px; flex:none; }
 .byo-head h2{ flex:1; margin:0; font:600 20px/26px var(--by-font); color:var(--ink-0,#eee); }
 .byo-x, .byo-back{ flex:none; display:inline-grid; place-items:center; width:44px; height:44px; padding:0; border:0; border-radius:50%; background:rgba(150,160,175,.16); color:var(--ink-1,#c9cdd3); cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.byo-back[hidden]{ display:none; }   /* author display:inline-grid beat [hidden]: Back showed on the list root, where it does nothing */
 .byo-x:hover, .byo-back:hover{ background:rgba(150,160,175,.26); color:var(--ink-0,#eee); }
 .byo-body{ flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; padding:0 20px 20px; padding-bottom:calc(20px + env(safe-area-inset-bottom,0px));
   scrollbar-width:thin; scrollbar-color:rgba(150,160,175,.35) transparent; }

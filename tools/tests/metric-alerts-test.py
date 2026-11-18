@@ -245,5 +245,62 @@ class Round(unittest.TestCase):
         self.assertEqual(d.sent, [])
 
 
+
+class Phantom(unittest.TestCase):
+    K = 'SPXW261120C07000000'
+    P = 'SPXW261120P06900000'
+
+    def cur(self, t, lm, day='2026-11-17'):
+        return {'t': t, 'day': day, 'lm': lm}
+
+    def test_parse(self):
+        a = al('ph_premium', {'dir': 'call', 'value': 500000}, sym='ES1!')
+        self.assertEqual((a['symbol'], a['p'], a['pro']), ('SPX', {'dir': 'call', 'value': 500000.0}, True))
+        self.assertIsNone(al('ph_premium', {'dir': 'call', 'value': 500}))            # below $10K
+        self.assertIsNone(al('ph_voloi', {'dir': 'any', 'value': 0.1}))              # Vol/OI floor 0.5
+        self.assertIsNone(al('ph_voloi', {'dir': 'up', 'value': 2}))                 # bad side
+        self.assertIsNone(al('ph_premium', {'dir': 'any', 'value': 1e6}, sym='AAPL'))  # not covered
+        self.assertEqual(al('ph_voloi', {'dir': 'put', 'value': 2}, sym='NQ')['symbol'], 'QQQ')
+
+    def test_premium(self):
+        a = al('ph_premium', {'dir': 'call', 'value': 500000})
+        t, e = ma.eval_phantom(a, self.cur(100, [[self.K, 1000, 900000, 5000, 100]]), None, 0)
+        self.assertIsNone(t)                                                         # first look: baseline only
+        t, e = ma.eval_phantom(a, self.cur(100, [[self.K, 1000, 900000, 5000, 100]]), e, 10)
+        self.assertIsNone(t)                                                         # same sample again
+        t, e = ma.eval_phantom(a, self.cur(160, [[self.P, 9000, 2000000, 9000, 100], [self.K, 800, 600000, 5800, 100]]), e, 20)
+        self.assertIn('Nov 20 7,000 call: about $600,000 of premium in one minute (800 contracts)', t)
+        self.assertIn('estimate from options volume and quotes', t)
+        self.assertNotRegex(t.lower(), r'\b(trade|trades|print|sweep|block|bought|live|real-time)\b')
+        self.assertTrue(t.endswith('Education only. Not financial advice.'))
+        t, e = ma.eval_phantom(a, self.cur(220, [[self.K, 10, 5000, 5810, 100]]), e, 30)
+        self.assertIsNone(t)                                                         # under the value
+
+    def test_voloi_once_per_contract_per_day(self):
+        a = al('ph_voloi', {'dir': 'any', 'value': 3}, freq='every')
+        _, e = ma.eval_phantom(a, self.cur(100, []), None, 0)
+        t, e = ma.eval_phantom(a, self.cur(160, [[self.K, 10, 100000, 400, 100]]), e, 1000)
+        self.assertIn('volume today 400 is 4.0x its open interest (100)', t)
+        t, e = ma.eval_phantom(a, self.cur(220, [[self.K, 10, 100000, 500, 100]]), e, 5000)
+        self.assertIsNone(t)                                                         # same contract, same day: reported already
+        t, e = ma.eval_phantom(a, self.cur(280, [[self.K, 10, 100000, 500, 100]], day='2026-11-18'), e, 9000)
+        self.assertIsNotNone(t)                                                      # a new day
+
+    def test_round(self):
+        a = al('ph_premium', {'dir': 'any', 'value': 100000}, uid='m')
+        alerts = {a['id']: a}
+        fs = StubFs({'students/m/metricAlerts/a1': {'active': True, 'metric': 'ph_premium', 'updatedAt': a['armed']}})
+        sent = []
+        d = ml.Deps(fs, None, lambda m: None, notify=lambda data, what: sent.append(data))
+        d.is_pro = lambda uid, now: True
+        replies = [{'day': '2026-11-17', 'u': {'SPX': {'t': 1, 'lm': []}}},
+                   {'day': '2026-11-17', 'u': {'SPX': {'t': 2, 'lm': [[self.K, 300, 250000, 900, 50]]}}}]
+        d.phantom = lambda: replies.pop(0)
+        st, cache = {'alerts': {}, 'rings': {}}, {}
+        self.assertEqual(ml.metric_round(1000, st, alerts, d, cache), [])
+        self.assertEqual([r for _, _, r in ml.metric_round(1100, st, alerts, d, cache)], ['fired'])
+        self.assertEqual(sent[0]['link'], 'phantom.html?u=SPX')
+        json.dumps(st)
+
 if __name__ == '__main__':
     unittest.main()

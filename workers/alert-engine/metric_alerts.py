@@ -1,7 +1,7 @@
 """Metric alerts: pure logic (no network, no clock). Owner order 2026-11-07 ("alerts on any metric").
 
 Alerts live in Firestore students/{uid}/metricAlerts/{id} (rules: functions-src/firestore.rules, owner only). Doc fields:
-  metric  gex_cross | funding | oi_change
+  metric  gex_cross | funding | oi_change | ph_premium | ph_voloi
           (GEX regime flips, IV rank and put/call thresholds already exist as ZoroOptions alerts: zoro_alerts.py zone_change /
           iv_rank / pc_extreme. The site's metric picker saves those three as zoroAlerts docs, so one metric has one engine.)
   symbol  GEX / options metrics: an options underlying (SPX SPY QQQ IWM GLD USO or a covered stock; ES NQ RTY GC CL map to
@@ -10,6 +10,8 @@ Alerts live in Firestore students/{uid}/metricAlerts/{id} (rules: functions-src/
             gex_cross   {level: call_wall|put_wall|gamma_flip|pin|em_high|em_low|any_node, range: s|0|1|w|m (em only), dir: any|up|down}
             funding     {venue: okx|hl, dir: above|below, value: percent per funding interval (-5..5)}
             oi_change   {venue: okx|hl, mins: 5|15|60|240, dir: up|down|either, value: percent > 0}
+            ph_premium  {dir: call|put|any, value: $ estimated premium in one minute on one contract (>= 10,000)}   (Phantom)
+            ph_voloi    {dir: call|put|any, value: day volume / open interest of one contract (0.5 .. 100)}           (Phantom)
   freq 'once' | 'every';  active bool;  message (<= 140);  createdAt;  updatedAt (server time: arms the alert)
 
 Plans: GEX metrics are Pro (the engine checks the member's plan before it fires); crypto metrics are free.
@@ -17,6 +19,9 @@ Plans: GEX metrics are Pro (the engine checks the member's plan before it fires)
 Semantics (no duplicate fires):
   gex_cross   the underlying's spot of two consecutive options updates (snapshot `built` changed) straddles the level
               (up: prev < L <= now; down: prev > L >= now). Checked per update, not per tick.
+  phantom     each new Phantom sample (its `t` changed): ph_premium fires when a contract's estimated premium THIS minute is >= value;
+              ph_voloi when a contract newly reaches the Vol/OI value (a contract already reported is remembered for the day). Read
+              from the Worker's /phantom/summary (`lm`: the minute's 50 biggest contracts). Estimates from volume and quotes.
   thresholds  (funding, oi_change) fire when the condition TURNS true, then are held until it is false
               again. A condition already true when the alert is armed (created / edited / resumed) is held, not fired.
   every       an Every-time alert also waits COOLDOWN_S between two fires.
@@ -25,8 +30,10 @@ Education only. Not financial advice.
 """
 import re
 
-METRICS = ('gex_cross', 'funding', 'oi_change')
-PRO = ('gex_cross',)
+METRICS = ('gex_cross', 'funding', 'oi_change', 'ph_premium', 'ph_voloi')
+PHANTOM = ('ph_premium', 'ph_voloi')
+PH_SIDES = ('call', 'put', 'any')
+PRO = ('gex_cross', 'ph_premium', 'ph_voloi')   # member tools (all tools free since 2026-11-13: is_pro = any member)
 MAX_PER_MEMBER = 20
 COOLDOWN_S = 900
 LEVELS = ('call_wall', 'put_wall', 'gamma_flip', 'pin', 'em_high', 'em_low', 'any_node')
@@ -68,7 +75,17 @@ def parse_metric_alert(uid, aid, d, ut=''):
         sym = coin(d.get('symbol')) if crypto else underlying(d.get('symbol'))
         if not re.match(r'^[A-Z0-9]{1,15}$' if crypto else r'^[A-Z0-9.\-]{1,12}$', sym):
             return None
-        if m == 'gex_cross':
+        if m in PHANTOM:
+            v = p.get('value')
+            q['dir'] = p.get('dir', 'any')
+            if not _num(v) or q['dir'] not in PH_SIDES:
+                return None
+            q['value'] = float(v)
+            if not (10000 <= q['value'] <= 1e10 if m == 'ph_premium' else 0.5 <= q['value'] <= 100):
+                return None
+            if sym not in ('SPX', 'SPY', 'QQQ', 'GLD'):
+                return None
+        elif m == 'gex_cross':
             q['level'] = p.get('level')
             if q['level'] not in LEVELS:
                 return None
@@ -240,6 +257,63 @@ def eval_snapshot(a, cur, entry, now):
                  a, tail), entry
 
 
+# ------------------------------------------------------------------------------------------- phantom
+OCC = re.compile(r'^[A-Z]{1,6}(\d{2})(\d{2})(\d{2})([CP])(\d{8})$')
+
+
+def contract_name(k):
+    """'SPXW261120C07000000' -> 'Nov 20 7,000 call'."""
+    m = OCC.match(k or '')
+    if not m:
+        return k
+    mon = ('Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec').split()[int(m.group(2)) - 1]
+    return '%s %d %s %s' % (mon, int(m.group(3)), fmt(int(m.group(5)) / 1000, 'auto'), 'call' if m.group(4) == 'C' else 'put')
+
+
+def eval_phantom(a, cur, entry, now):
+    """cur: this underlying's /phantom/summary entry {t, lm: [[k, new vol, premium, day vol, OI], ...]} or None. -> (text or None, entry)."""
+    if not cur or not cur.get('t'):
+        return None, entry
+    day = cur.get('day') or ''
+    if entry is None or entry.get('v') != a['armed'] or 't' not in entry:
+        return None, {'v': a['armed'], 't': cur['t'], 'last': 0, 'seen': [], 'day': day}   # baseline: what was already there never fires
+    if cur['t'] == entry.get('t'):
+        return None, entry
+    entry['t'] = cur['t']
+    if entry.get('day') != day:
+        entry.update(day=day, seen=[])
+    if a['freq'] == 'every' and now - entry.get('last', 0) < COOLDOWN_S:
+        return None, entry
+    p, side = a['p'], {'call': 'C', 'put': 'P'}.get(a['p']['dir'])
+    hits = []
+    for r in cur.get('lm') or []:
+        try:
+            k, dv, prem, vol, oi = r[0], r[1], r[2], r[3], r[4]
+        except (TypeError, IndexError):
+            continue
+        m = OCC.match(str(k))
+        if not m or (side and m.group(4) != side):
+            continue
+        if a['metric'] == 'ph_premium' and prem >= p['value']:
+            hits.append((prem, k, dv, prem, vol, oi))
+        elif a['metric'] == 'ph_voloi' and oi > 0 and vol / oi >= p['value'] and k not in entry['seen']:
+            hits.append((vol / oi, k, dv, prem, vol, oi))
+    if not hits:
+        return None, entry
+    hits.sort(reverse=True)
+    _, k, dv, prem, vol, oi = hits[0]
+    more = ' and %d more' % (len(hits) - 1) if len(hits) > 1 else ''
+    if a['metric'] == 'ph_voloi':
+        entry['seen'] = (entry['seen'] + [h[1] for h in hits])[-300:]
+        head = '%s %s: volume today %s is %sx its open interest (%s)%s.' % (a['symbol'], contract_name(k), fmt(vol, 0),
+                                                                             fmt(vol / oi, 1), fmt(oi, 0), more)
+    else:
+        head = '%s %s: about $%s of premium in one minute (%s contracts)%s.' % (a['symbol'], contract_name(k), fmt(prem, 0), fmt(dv, 0), more)
+    entry['last'] = now
+    tail = 'Phantom estimate from options volume and quotes, per minute' + (', data from %s' % _et(cur['t']) if _et(cur['t']) else '') + '.'
+    return _wrap(head, a, tail), entry
+
+
 # ------------------------------------------------------------------------------------------- crypto
 def parse_hl(reply):
     """Hyperliquid info {type: metaAndAssetCtxs} -> {coin: {'funding': percent per hour, 'oi': coins, 'hours': 1}}."""
@@ -315,6 +389,8 @@ def eval_crypto(a, row, ring, entry, now):
 
 
 def link(a):
+    if a['metric'] in PHANTOM:
+        return 'phantom.html?u=' + a['symbol']
     if a['metric'] in ('funding', 'oi_change'):
         return 'charts.html'
     return 'zoro-options.html?symbol=' + a['symbol']

@@ -9,6 +9,8 @@ Every EVERY s:
      admins count). Not Pro -> the alert is skipped (kept, never fires). Cached PLAN_TTL s.
   3. options data: the Worker's /zo/summary per symbol (the same numbers the ZoroOptions page and GEX Levels show; the
      engine never calls a vendor). Read at most every OPT_EVERY s per symbol.
+  3b. Phantom: the Worker's /phantom/summary (every symbol's latest minute, ingest key), read at most every PH_EVERY s, only when a
+     Phantom alert exists.
   4. crypto: OKX public REST (funding-rate?instId=ANY, open-interest?instType=SWAP) and Hyperliquid public info
      (metaAndAssetCtxs), only when an alert needs that venue. OI samples of watched coins are kept RING_S s for the
      "change over N minutes" alerts. Binance / Bybit are not reachable from this server: not offered.
@@ -31,6 +33,8 @@ OPT_EVERY = 110
 PLAN_TTL = 600
 RING_S = 5 * 3600
 STATE = os.environ.get('METRIC_STATE', os.path.join(HERE, 'metric-state.json'))
+PH_EVERY = 50
+PH_URL = os.environ.get('BOOK_RECORDER_URL', 'https://book-recorder.theelitegrey.workers.dev').rstrip('/') + '/phantom/summary'
 OKX = 'https://www.okx.com/api/v5/public/'
 HL = 'https://api.hyperliquid.xyz/info'
 UA = {'User-Agent': 'tradezoro-alert-engine/1'}
@@ -129,6 +133,9 @@ class Deps:
     def crypto(self, venue):
         return fetch_crypto(venue)
 
+    def phantom(self):
+        return _get_json(PH_URL, headers={'x-ingest-key': os.environ.get('BOOK_INGEST_SECRET', '')})
+
     def fire(self, a, text):
         path = 'students/%s/metricAlerts/%s' % (a['uid'], a['aid'])
         doc, ut = self.fs.get_doc(path)
@@ -165,9 +172,24 @@ def metric_round(now, st, alerts, deps, opt_cache):
                 continue                                   # unknown plan: skip this round, never fire on a guess
         live[a['id']] = a
     stat['locked'] = locked
+    # Phantom summary (one read for every symbol)
+    ph = None
+    if any(a['metric'] in ma.PHANTOM for a in live.values()):
+        hit = opt_cache.get('__phantom')
+        if hit and now - hit[0] < PH_EVERY:
+            ph = hit[1]
+        else:
+            try:
+                j = deps.phantom()
+                ph = {u: dict(v, day=j.get('day')) for u, v in (j.get('u') or {}).items()}
+            except Exception as e:
+                stat['err'] += 1
+                deps.log('metric phantom read failed: %s' % type(e).__name__)
+                ph = hit[1] if hit else None
+            opt_cache['__phantom'] = (now, ph)
     # options snapshots
     vals = {}
-    for sym in sorted({a['symbol'] for a in live.values() if a['pro']}):
+    for sym in sorted({a['symbol'] for a in live.values() if a['pro'] and a['metric'] not in ma.PHANTOM}):
         hit = opt_cache.get(sym)
         if hit and now - hit[0] < OPT_EVERY:
             vals[sym] = hit[1]
@@ -204,7 +226,11 @@ def metric_round(now, st, alerts, deps, opt_cache):
     for a in live.values():
         old = st['alerts'].get(a['id'])
         cur_e = dict(old) if old else None           # eval_* update their entry in place; old stays as it was for a failed send
-        if a['pro']:
+        if a['metric'] in ma.PHANTOM:
+            if ph is None:
+                continue
+            text, entry = ma.eval_phantom(a, ph.get(a['symbol']), cur_e, now)
+        elif a['pro']:
             v = vals.get(a['symbol'])
             if not v:
                 continue

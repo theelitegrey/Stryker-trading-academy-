@@ -51,6 +51,7 @@ const PAGES = [
   ['/features/creators',   '0.6', 'monthly'],
   ['/options-calculator', '0.6', 'monthly'],
   ['/iv-skew',            '0.5', 'monthly'],
+  ['/phantom',            '0.6', 'weekly'],
   ['/sell-indicators',     '0.5', 'monthly'],
   ['/login',                '0.5', 'monthly'],
   ['/contact',              '0.6', 'monthly'],

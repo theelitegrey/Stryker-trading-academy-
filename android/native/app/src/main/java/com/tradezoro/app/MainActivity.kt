@@ -19,8 +19,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -43,6 +41,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.tradezoro.app.ui.common.TopNotes
+import com.tradezoro.app.ui.common.TopNotesHost
 import com.tradezoro.app.auth.AuthRepository
 import com.tradezoro.app.auth.TzUser
 import com.tradezoro.app.auth.ChartAuthLink
@@ -174,7 +174,7 @@ fun TzRoot(
     val entry by nav.currentBackStackEntryAsState()
     val route = entry?.destination?.route
     val user by auth.user.collectAsState(initial = null)
-    val snack = remember { SnackbarHostState() }
+    val snack = remember { TopNotes() }
     val scope = rememberCoroutineScope()
     var accountOpen by rememberSaveable { mutableStateOf(false) }
     var confirmFlatten by remember { mutableStateOf(false) }
@@ -243,12 +243,12 @@ fun TzRoot(
             if (t == null && !relinkTried) {
                 relinkTried = true
                 if (auth.isGoogle) silentGoogleIdToken(ctx)?.let { g -> runCatching { auth.signInGoogle(g) }.onSuccess { t = ChartAuthLink().customToken() } }
-                if (t == null) snack.showSnackbar("Sign in again to make the chart live on this phone.")
+                if (t == null) snack.show("Sign in again to make the chart live on this phone.")
             }
             t?.let { chartWeb.call("TZB.signIn(${jsString(it)})") }
         }
     }
-    LaunchedEffect(homeVm) { homeVm.notes.collect { n -> if (n != null) { snack.showSnackbar(n); homeVm.consumeNote() } } }
+    LaunchedEffect(homeVm) { homeVm.notes.collect { n -> if (n != null) { snack.show(n); homeVm.consumeNote() } } }
     val goTab: (Tab) -> Unit = { t ->
         nav.navigate(t.route) {
             popUpTo(nav.graph.findStartDestination().id) { saveState = true }
@@ -288,9 +288,9 @@ fun TzRoot(
         bottomBar = {
             if (navTab != null && !chartFull) TzBottomBar(navTab, goTab)
         },
-        snackbarHost = { SnackbarHost(snack) },
     ) { pad ->
-        NavHost(nav, startDestination = Tab.HOME.route, modifier = Modifier.padding(pad)) {
+        Box(Modifier.padding(pad)) {
+        NavHost(nav, startDestination = Tab.HOME.route, modifier = Modifier) {
             composable(Tab.HOME.route) {
                 // The chart page stays loaded (invisible, untouchable) under Home: the site's symbol search and quotes run
                 // in it, and the chart is warm when a row is tapped.
@@ -369,7 +369,7 @@ fun TzRoot(
             composable(SIGN_IN) { SignInRoute(auth, onClose = { nav.popBackStack() }) }
             composable(ALERTS) {
                 val st by alertsVm.state.collectAsState()
-                val err: (String) -> Unit = { m -> scope.launch { snack.showSnackbar(m) } }
+                val err: (String) -> Unit = { m -> scope.launch { snack.show(m) } }
                 AlertsContent(st, pushOn, AlertsActions(
                     onNew = newAlert,
                     onToggle = { a, on -> alertsVm.toggle(a, on, err) },
@@ -382,6 +382,8 @@ fun TzRoot(
                     onSignIn = { nav.navigate(SIGN_IN) },
                 ))
             }
+        }
+        TopNotesHost(snack)
         }
     }
 
@@ -432,7 +434,7 @@ fun TzRoot(
                     val err = t.error
                     if (err != null) addError = err else {
                         addBusy = true
-                        journalVm.add(t) { e -> addBusy = false; if (e == null) { addTrade = null; scope.launch { snack.showSnackbar("Trade saved.") } } else addError = e }
+                        journalVm.add(t) { e -> addBusy = false; if (e == null) { addTrade = null; scope.launch { snack.show("Trade saved.") } } else addError = e }
                     }
                 },
                 onFullForm = { addTrade = null; openWeb("/trade-journal.html") })

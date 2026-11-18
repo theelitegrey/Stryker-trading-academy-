@@ -1,5 +1,7 @@
 package com.tradezoro.app.screens
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.remember
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -160,6 +162,22 @@ class ScreenshotTest(private val device: String, private val dark: Boolean) {
             topBar = { if (tab == Tab.HOME) HomeTopBar(SampleAvatar, {}, {}) else TabTopBar(tab.label) },
             bottomBar = { TzBottomBar(tab) {} },
         ) { pad -> body(Modifier.padding(pad)) }
+    }
+
+    @Test fun topNotes() = shoot("9-notes") {
+        val n = remember { com.tradezoro.app.ui.common.TopNotes().also {
+            it.show("Paper NQ1!: added 1 @ 27,209.75", com.tradezoro.app.ui.common.NoteKind.SUCCESS)
+            it.show("Paper ES1!: sold 2 @ 6,812.50", com.tradezoro.app.ui.common.NoteKind.ERROR)
+            it.show("NQ1! is already in this list.")
+        } }
+        Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
+            topBar = { ChartTopBar({}, {}, {}, state = sampleChart(true)) },
+            bottomBar = { TzBottomBar(Tab.CHARTS) {} },
+        ) { pad -> Box(Modifier.padding(pad)) {
+            ChartContent(sampleChart(true), ChartActions(), Modifier, symbols = WHEEL) { m -> ChartPlaceholder(m) }
+            com.tradezoro.app.ui.common.TopNotesHost(n)
+        } }
     }
 
     @Test fun home() = shoot("1-home") {

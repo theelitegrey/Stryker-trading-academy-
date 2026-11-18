@@ -122,6 +122,8 @@
     layouts: function () { try { window.STRYKER_LAYOUTS.library.open('mine'); return true; } catch (e) { return false; } },
     templates: function () { return click('#stkc-tpl-btn'); },
     workspaces: function () { return click('#stkws-btn'); },
+    // The site's own full chart-settings dialog (gear on its toolbar, assets/chart-settings.js): every site setting, saved by the site to the account.
+    settings: function () { return click('#stkc-settings-btn'); },
     alerts: function () { try { window.__stkAlerts.open(); return true; } catch (e) { return false; } },
 
     // ---- async results: the app starts a job with run(key, ...) and reads take(key) until it is not null ----

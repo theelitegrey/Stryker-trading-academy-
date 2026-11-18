@@ -29,13 +29,14 @@ import androidx.compose.material3.MaterialTheme
 import com.tradezoro.app.ui.theme.Tz
 import com.tradezoro.app.data.ChartData
 import com.tradezoro.app.data.FrameStore
+import com.tradezoro.app.ui.common.TopNotes
+import com.tradezoro.app.ui.common.NoteKind
 import com.tradezoro.app.ui.common.TzIcons
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.resume
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -160,7 +161,7 @@ fun ChartRoute(
     web: ChartWeb,
     vm: ChartViewModel,
     dark: Boolean,
-    snack: SnackbarHostState,
+    snack: TopNotes,
     modifier: Modifier = Modifier,
     /** The active watchlist's symbols (site ids), for the symbol wheel. */
     symbols: List<String> = emptyList(),
@@ -296,10 +297,10 @@ const val CLASSIC_KEY = "chart_classic_m7"
 
 /** Polls the chart page once a second while a chart-backed screen (Charts or Trade) is shown; engine toasts -> snackbars. */
 @Composable
-fun ChartPolling(web: ChartWeb, vm: ChartViewModel, snack: SnackbarHostState, onPaper: ((com.tradezoro.app.data.PaperSnapshot) -> Unit)? = null) {
+fun ChartPolling(web: ChartWeb, vm: ChartViewModel, snack: TopNotes, onPaper: ((com.tradezoro.app.data.PaperSnapshot) -> Unit)? = null) {
     val messages by vm.messages.collectAsState()
     LaunchedEffect(web, onPaper) { while (true) { web.readState(vm::onBridge); onPaper?.let(web::readPaper); delay(1000) } }
-    LaunchedEffect(messages) { messages.firstOrNull()?.let { snack.showSnackbar(it); vm.consumeMessage() } }
+    LaunchedEffect(messages) { messages.firstOrNull()?.let { t -> snack.show(t.msg, when (t.type) { "success" -> NoteKind.SUCCESS; "error" -> NoteKind.ERROR; else -> NoteKind.INFO }); vm.consumeMessage() } }
 }
 
 /** The chart's top bar (lives in the app Scaffold) with its overflow menu. */
@@ -336,6 +337,8 @@ fun ChartTopBarHost(web: ChartWeb, vm: ChartViewModel, onBack: () -> Unit, appPr
             DropdownMenuItem(text = { Text("Layouts") }, onClick = { menu = false; web.call("TZB.layouts()") })
             DropdownMenuItem(text = { Text("Indicator templates") }, onClick = { menu = false; web.call("TZB.templates()") })
             DropdownMenuItem(text = { Text("Workspaces") }, onClick = { menu = false; web.call("TZB.workspaces()") })
+            // The site's own full Chart settings dialog (all its tabs); the site saves it to the account.
+            DropdownMenuItem(text = { Text("Chart settings") }, onClick = { menu = false; web.call("TZB.settings()") })
             HorizontalDivider()
             DropdownMenuItem(text = { Text("Reload chart") }, onClick = { menu = false; web.reload() })
             DropdownMenuItem(text = { Text("Open on tradezoro.com") }, onClick = {

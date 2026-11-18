@@ -54,7 +54,7 @@ class ChartBridgeTest {
         s = vm.state.value
         assertNull(s.changePct); assertNull(s.tf); assertEquals("0.01", s.qtyText); assertTrue(s.paperOn)
         assertEquals("Short 0.02 @ 65,010.00", s.position)
-        assertEquals(listOf("Market closed"), vm.messages.value); vm.consumeMessage(); assertTrue(vm.messages.value.isEmpty())
+        assertEquals(listOf("Market closed"), vm.messages.value.map { it.msg }); vm.consumeMessage(); assertTrue(vm.messages.value.isEmpty())
         vm.inc(); assertEquals("0.02", vm.state.value.qtyText)
     }
 

@@ -2,6 +2,7 @@ package com.tradezoro.app.ui.chart
 
 import androidx.lifecycle.ViewModel
 import com.tradezoro.app.data.BridgeState
+import com.tradezoro.app.data.BridgeToast
 import com.tradezoro.app.data.Timeframe
 import com.tradezoro.app.data.displayTicker
 import com.tradezoro.app.data.isFuturesId
@@ -46,8 +47,8 @@ class ChartViewModel : ViewModel() {
     val state: StateFlow<ChartUiState> = _state.asStateFlow()
 
     /** Toasts from the paper engine waiting to be shown as snackbars. */
-    private val _messages = MutableStateFlow<List<String>>(emptyList())
-    val messages: StateFlow<List<String>> = _messages.asStateFlow()
+    private val _messages = MutableStateFlow<List<BridgeToast>>(emptyList())
+    val messages: StateFlow<List<BridgeToast>> = _messages.asStateFlow()
 
     fun onBridge(b: BridgeState) {
         _state.update { s ->
@@ -63,7 +64,7 @@ class ChartViewModel : ViewModel() {
                 pageUid = b.uid,
             )
         }
-        if (b.toasts.isNotEmpty()) _messages.update { it + b.toasts.map { t -> t.msg }.filter { m -> m.isNotBlank() } }
+        if (b.toasts.isNotEmpty()) _messages.update { it + b.toasts.filter { t -> t.msg.isNotBlank() } }
     }
 
     /** (chart id, ticker) picked on Home, applied once the chart is ready. */

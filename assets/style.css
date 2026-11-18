@@ -5867,6 +5867,11 @@ a.floor-tag:hover{ text-decoration:underline; }
 html.stk-pine-busy .role-tag, html.stk-pine-busy .brand-plan,
 html.stk-pine-busy .role-tag::before, html.stk-pine-busy .brand-plan::before,
 html.stk-pine-busy .role-tag::after, html.stk-pine-busy .brand-plan::after{ animation-play-state:paused !important; }
+/* SMOOTH (2026-11-18): the badge sheen animates box-shadow / background / left, a full style + paint per frame; on Charts
+   it pauses while the chart is being dragged or wheeled (assets/vela-chart.js sets html.stk-chart-moving), resumes after */
+html.stk-chart-moving .role-tag, html.stk-chart-moving .brand-plan,
+html.stk-chart-moving .role-tag::before, html.stk-chart-moving .brand-plan::before,
+html.stk-chart-moving .role-tag::after, html.stk-chart-moving .brand-plan::after{ animation-play-state:paused !important; }
 /* The chart legend's "computing" dot (Vela, inline animation vela-ind-pulse) pulses for the
    whole run and forced a full-page frame 60x a second; while busy it stays lit instead. */
 html.stk-pine-busy .vela-cell [style*="vela-ind-pulse"]{ animation:none !important; opacity:.75; }

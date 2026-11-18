@@ -107,6 +107,7 @@ async function open(b, scen, dpr) {
     await ctx.addInitScript(() => { try { for (const k of ['stryker_install_prompt_shown_u1', 'stryker_push_prompt_shown_u1', 'stryker_community_disclaimer_ack_v1']) localStorage.setItem(k, '1'); localStorage.setItem('stryker.vela.session', ''); } catch (e) {} });
     if (scen === 'heavy' || scen === 'hm') await ctx.addInitScript(fakeWs);
     await ctx.addInitScript((mid) => { window.__L2MID = mid; }, LAST);
+    if (process.env.HM_2D) await ctx.addInitScript(() => { window.__HM_INPUTS = { gpuHeatmap: false }; });   // diagnosis: the 2D heatmap path
   }
   await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|localhost|cdn\.jsdelivr\.net)/, (r) => r.abort());
   await ctx.route(/\/api\/chart\/bars\//, (r) => {
@@ -144,7 +145,7 @@ async function open(b, scen, dpr) {
       ws.active.setSymbol('futures:NQ1!'); ws.active.setTimeframe('1');
       for (let i = 0; i < 120; i++) { await new Promise((r) => setTimeout(r, 250)); const c = ws.chart; if (c.market.symbol === 'futures:NQ1!' && c.market.timeframe === '1' && c.orchestrator.rawBars.length > 300) break; }
       ws.chart.addNativeIndicator('stk_gex', {});
-      if (hm) ws.chart.addNativeIndicator('stk_fut_dom', {});
+      if (hm) ws.chart.addNativeIndicator('stk_fut_dom', window.__HM_INPUTS || {});
       if (fp) ws.active.setPriceStyle('stk_fp');
       try { ws.context().stateChanged(); } catch (e) {}
     }, [scen === 'heavy' || scen === 'fp', scen === 'heavy' || scen === 'hm']);
@@ -218,9 +219,12 @@ function topSelf(profile, n) {
 
 async function traceSummary(p, box) {
   const browser = p.context().browser();
-  await browser.startTracing(p, { categories: ['devtools.timeline', 'disabled-by-default-devtools.timeline', 'v8.execute', 'blink.user_timing'] });
+  const cats = ['devtools.timeline', 'disabled-by-default-devtools.timeline', 'v8.execute', 'blink.user_timing'];
+  if (process.env.INV) cats.push('disabled-by-default-devtools.timeline.invalidationTracking', 'disabled-by-default-devtools.timeline.stack');
+  await browser.startTracing(p, { categories: cats });
   await drive(p, box);
   const buf = await browser.stopTracing();
+  if (process.env.PROFILE_DIR) fs.writeFileSync(path.join(process.env.PROFILE_DIR, 'trace-' + Date.now() + '.json'), buf);
   const ev = JSON.parse(buf.toString()).traceEvents || [];
   const main = ev.find((e) => e.name === 'thread_name' && e.args && e.args.name === 'CrRendererMain');
   if (!main) return null;
@@ -245,9 +249,11 @@ async function traceSummary(p, box) {
       const key = scen + '@' + dpr;
       const { ctx, p, errors } = await open(b, scen, dpr);
       await p.evaluate(INSTR);
+      if (process.env.PROBE_JS) { console.log(key, 'probe', JSON.stringify(await p.evaluate(fs.readFileSync(process.env.PROBE_JS, 'utf8')))); if (process.env.PROBE_ONLY) { await ctx.close(); continue; } }
       const box = await plotBox(p);
       const runs = [];
       for (let i = 0; i < RUNS; i++) runs.push(await drive(p, box));
+      if (process.env.PROBE_AFTER) console.log(key, 'after', JSON.stringify(await p.evaluate(fs.readFileSync(process.env.PROBE_AFTER, 'utf8'))));
       const med = (kind) => runs.map((r) => r[kind]).sort((x, y) => x.p95 - y.p95)[Math.floor(runs.length / 2)];
       out[key] = { pan: med('pan'), zoom: med('zoom'), runs: runs.map((r) => ({ panP95: r.pan.p95, zoomP95: r.zoom.p95 })) };
       if (PROFILE && dpr === DPRS[0]) {

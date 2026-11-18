@@ -119,7 +119,8 @@ export const VERSIONS = {
   ] },
   'x:liquidity-master-tradezoro': { base: '1.1', versions: [
     { v: '1.0', date: '2026-10-12', notes: ['First release.'] },
-    { v: '1.1', date: '2026-11-10', all: true, notes: ['Fix: an Asia session that starts on the first loaded bar is partial and is no longer drawn, so the Asia high and low are the same on every timeframe.'] }
+    { v: '1.1', date: '2026-11-10', all: true, notes: ['Fix: an Asia session that starts on the first loaded bar is partial and is no longer drawn, so the Asia high and low are the same on every timeframe.'] },
+    { v: '1.2', date: '2026-11-18', all: true, notes: ['Fix: higher-timeframe fair value gaps show as soon as their third candle closes on a live chart, at the right place.', 'Fix: with Highest timeframe wins on, a gap inside a higher one now comes back when the higher gap is filled, and a gap that only touches a higher one is kept.'] }
   ] },
   'x:session-sweep-smt-ifvg': { base: '1.1', versions: [
     { v: '1.0', date: '2026-10-29', notes: ['First release.'] },
@@ -284,7 +285,7 @@ export const VERSIONS = {
   'x:fvg-relay-stryker': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-07', notes: ['First release.'] }] },
   'x:ict-pro-plus-timmynq': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-07', notes: ['Added to ZoroCharts.'] }] },
   'x:ifvg-degree-pro-plus': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-09', notes: ['Added to ZoroCharts.'] }] },
-  'x:ifvg-pro-stryker': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-07', notes: ['First release.'] }] },
+  'x:ifvg-pro-stryker': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-07', notes: ['First release.'] }, { v: '1.1', date: '2026-11-18', all: true, notes: ['Fix: the risk/reward box stays on the candle where the IFVG triggered, at its entry and stop, on a live chart without re-adding the indicator.'] }] },
   'x:ifvg-ultimate-deluxe-dodgysdd': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-07', notes: ['Added to ZoroCharts.'] }] },
   'x:london-intraday-protraction': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-07', notes: ['Added to ZoroCharts.'] }] },
   'x:manipulation-model-fb': { base: '1.0', versions: [{ v: '1.0', date: '2026-10-07', notes: ['Added to ZoroCharts.'] }] },

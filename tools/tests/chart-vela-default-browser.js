@@ -26,7 +26,7 @@ const state = (p) => p.evaluate(() => ({ v090: window.__stkVela090, map: documen
     p.on('domcontentloaded', () => { navs++; });   // real reloads only (layout links use history.replaceState)
     await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' }); await ready(p);
     let s = await state(p);
-    check(s.v090 === true && s.map === 'vela-0.9.0-s10', `${w}: member gets 0.9.0 by default`, s);
+    check(s.v090 === true && s.map === 'vela-0.9.0-s11', `${w}: member gets 0.9.0 by default`, s);
     navs = 0; await p.waitForTimeout(8000);
     check(navs === 0 && (await state(p)).v090 === true, `${w}: no admin refusal reload for members`, { navs });
     await p.screenshot({ path: `${OUT}/vela-default-member-${w}.png` });

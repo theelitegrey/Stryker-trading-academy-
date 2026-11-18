@@ -1308,6 +1308,9 @@ body.nav-authed{ padding-bottom:84px; }}
 html.stk-pine-busy .role-tag, html.stk-pine-busy .brand-plan,
 html.stk-pine-busy .role-tag::before, html.stk-pine-busy .brand-plan::before,
 html.stk-pine-busy .role-tag::after, html.stk-pine-busy .brand-plan::after{ animation-play-state:paused !important; }
+html.stk-chart-moving .role-tag, html.stk-chart-moving .brand-plan,
+html.stk-chart-moving .role-tag::before, html.stk-chart-moving .brand-plan::before,
+html.stk-chart-moving .role-tag::after, html.stk-chart-moving .brand-plan::after{ animation-play-state:paused !important; }
 html.stk-pine-busy .vela-cell [style*="vela-ind-pulse"]{ animation:none !important; opacity:.75; }
 .vela-field-cell > div:has(> .vela-select > [id$="-levelsFrom"]){ width:200px !important; max-width:52vw; }
 @media (prefers-reduced-motion: reduce){.role-tag, .brand-plan{ animation:none !important;
@@ -3949,7 +3952,6 @@ html.stk-chart-fs body.charts-page{ padding:0 !important; }
   --tz-surface:#ffffff; --tz-ink:var(--ink-0); --tz-ring:0 0 0 3px rgba(7,153,106,.2); --tz-sheet:var(--bg-1);
   --tz-chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%2357626f' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
-:root:has(.tz-modal-sheet:not([hidden])) body{ overflow:hidden; }
 :where(input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=file],[type=submit],[type=button],[type=reset],[type=image],[type=hidden]), select, textarea){
   background-color:var(--tz-surface); color:var(--tz-ink); border:1px solid var(--tz-line); border-radius:var(--tz-r);
   font-family:var(--font-body); color-scheme:dark; outline:none;

@@ -26,9 +26,9 @@
   +'.tzc-d li{padding:8px 0;border-bottom:1px solid rgba(127,127,127,.14)}.tzc-d b{color:inherit}'
   +'.tzc a.tzc-l{color:#03c988;padding:0;justify-content:flex-start}'
   +'@media(min-width:700px){.tzc{right:auto;left:20px;bottom:20px}}'
-  +'body:has(.sidebar.mobile-open) .tzc.on,body.sidebar-locked .tzc.on{opacity:0;pointer-events:none;transform:translateY(16px)}'
+  +'.tzc.on.tzc-x1,body.sidebar-locked .tzc.on{opacity:0;pointer-events:none;transform:translateY(16px)}'
   +'@media(max-width:820px){body.nav-authed .tzc,body.has-appdock .tzc{bottom:calc(84px + env(safe-area-inset-bottom))}}'
-  +'body:has(#appnav-sheet.open) .tzc.on,body:has([role=dialog][aria-modal=true]:not(.tzc-d)) .tzc.on,body:has(.stk-ct-ov) .tzc.on{opacity:0;pointer-events:none}'
+  +'.tzc.on.tzc-x2{opacity:0;pointer-events:none}'
   +'@media(prefers-reduced-motion:reduce){.tzc{transition:none;transform:none}}';
   function show(){
     if(document.querySelector('.tzc'))return;
@@ -40,7 +40,13 @@
     +'<div class="tzc-b"><button type="button" class="dt" aria-expanded="false" aria-controls="tzc-d">Details</button><button type="button" class="ok">OK</button></div>';
     document.body.appendChild(d);
     var dt=d.querySelector('.dt'),ul=d.querySelector('.tzc-d');
-    function close(){save();document.removeEventListener('keydown',key);d.classList.remove('on');d.classList.add('off');setTimeout(function(){d.remove();s.remove()},300)}
+    // Hide under an open menu / dialog. These were body:has(...) rules, but Chrome re-checks a body:has() on
+    // every DOM insert anywhere in the page (~1 ms each on Charts, every legend update while panning).
+    var cover=setInterval(function(){
+      d.classList.toggle('tzc-x1',!!document.querySelector('.sidebar.mobile-open'));
+      d.classList.toggle('tzc-x2',!!document.querySelector('#appnav-sheet.open,[role=dialog][aria-modal=true]:not(.tzc-d),.stk-ct-ov'));
+    },250);
+    function close(){clearInterval(cover);save();document.removeEventListener('keydown',key);d.classList.remove('on');d.classList.add('off');setTimeout(function(){d.remove();s.remove()},300)}
     function key(e){if(e.key==='Escape')close()}
     d.querySelector('.ok').onclick=close;
     dt.onclick=function(){var o=ul.hidden;ul.hidden=!o;dt.setAttribute('aria-expanded',o);dt.textContent=o?'Hide':'Details'};

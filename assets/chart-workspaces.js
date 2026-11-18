@@ -21,13 +21,15 @@
 // in the Workspaces list, one click reopens it. Delete is a separate action with a confirm.
 // Crash safety: the screen itself is restored by the chart's own on-device save; the index says which
 // workspace it is. Deleting a workspace never deletes its saved layout.
-import * as C from './chart-workspaces-core.js?v=1111';
+import * as C from './chart-workspaces-core.js?v=1115';
 
 const REMOTE_MS = 1500;
 const WS_SAVE_MS = 3000;
 let remoteRead = false;
 const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '');
 const isPhone = () => window.innerWidth <= 700;
+// tabs from 600 px up (Owner 17 Nov); the compact pill below. isPhone() keeps its older 700 px meaning for panels and sheets.
+const tabsMode = () => window.innerWidth >= 600;
 function fb(){ return (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length) ? firebase : null; }
 function user(){ const f = fb(); try { return f && f.auth().currentUser; } catch (e) { return null; } }
 const lsGet = (k) => { try { const v = localStorage.getItem(k); return v == null ? null : JSON.parse(v); } catch (e) { return null; } };
@@ -320,10 +322,17 @@ export function mountWorkspaces(ws, o){
   // phones hide the site top bar (the chart toolbar is the only bar): the pill starts the toolbar there (as before)
   const place = () => {
     const host = document.querySelector('.mobile-topnav .topnav-left');
-    if (isPhone() || !host) barL.insertBefore(wrap, barL.firstChild);
-    else { if (!strip.parentNode) host.appendChild(strip); strip.insertBefore(wrap, strip.firstChild); }
+    const top = tabsMode() && host && host.offsetParent !== null;   // site top bar missing or hidden (full screen): the strip starts the chart toolbar
+    if (!tabsMode()) { if (strip.parentNode) strip.remove(); if (wrap.parentNode !== barL || barL.firstChild !== wrap) barL.insertBefore(wrap, barL.firstChild); }
+    else {
+      const parent = top ? host : barL;
+      if (strip.parentNode !== parent) { if (top) parent.appendChild(strip); else parent.insertBefore(strip, parent.firstChild); }
+      if (wrap.parentNode !== strip || strip.firstChild !== wrap) strip.insertBefore(wrap, strip.firstChild);
+    }
+    strip.classList.toggle('in-bar', tabsMode() && !top);
   };
-  place(); window.addEventListener('resize', () => { if (wrap.parentNode !== (isPhone() ? barL : strip)) place(); });
+  place(); window.addEventListener('resize', place);
+  new MutationObserver(place).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
   const setOpen = bindPopover(btn, pop, () => renderList());
 
   const live = el('div', { class: 'sr-only', 'aria-live': 'polite' });
@@ -432,7 +441,7 @@ export function mountWorkspaces(ws, o){
   const newWs = () => askName('New workspace', C.uniqueName(ix, 'Workspace ' + (ix.items.length + 1)), createNew);
   const plus = el('button', { type: 'button', class: 'stkws-plus', title: 'New workspace', 'aria-label': 'New workspace', html: svg('add', 16) });
   plus.addEventListener('click', newWs);
-  const more = el('button', { type: 'button', class: 'stkws-more', title: 'More workspaces', 'aria-label': 'More workspaces', 'aria-haspopup': 'true', hidden: '', html: svg('chev', 14) });
+  const more = el('button', { type: 'button', class: 'stkws-more', title: 'More workspaces', 'aria-label': 'More workspaces', 'aria-haspopup': 'true', hidden: '', html: svg('chev', 14) + '<b></b>' });
   const morePop = el('div', { class: 'stkc-pop stkws-ctx stkws-morepop', role: 'menu', hidden: '' });
   tabs.appendChild(tabRow); tabs.appendChild(plus); tabs.appendChild(more);
   strip.appendChild(tabs);
@@ -463,15 +472,18 @@ export function mountWorkspaces(ws, o){
     // overflow: tabs that do not fit are hidden; the ▾ lists every workspace
     const tt = [...tabRow.children];
     tt.forEach((t) => { t.hidden = false; });
-    more.hidden = true;
-    const room = tabs.clientWidth - plus.offsetWidth - 40;
-    if (tabRow.scrollWidth <= room) return;
-    more.hidden = false;
+    more.querySelector('b').textContent = tt.length + ' more';   // widest label first
+    more.hidden = false;   // measure with the button in place, hide it again when everything fits
+    const room = tabs.clientWidth - plus.offsetWidth - more.offsetWidth - 8;   // two 4px gaps
+    if (tabRow.scrollWidth <= room + 1) { more.hidden = true; return; }
     const aIdx = tt.findIndex((t) => t.classList.contains('on'));
     let used = 0; const keep = new Set();
     const order = [aIdx, ...tt.map((_, i) => i).filter((i) => i !== aIdx)];
-    order.forEach((i) => { const w = tt[i].offsetWidth + 2; if (used + w <= room) { used += w; keep.add(i); } });
+    order.forEach((i) => { const w = (parseFloat(getComputedStyle(tt[i]).minWidth) || 96) + 4; if (used + w <= room + 4) { used += w; keep.add(i); } });
     tt.forEach((t, i) => { t.hidden = !keep.has(i); });
+    more.querySelector('b').textContent = (tt.length - keep.size) + ' more';
+    if (tabRow.scrollWidth > tabRow.clientWidth + 1 && keep.size > 1) { const last = order.filter((i) => keep.has(i)).pop(); keep.delete(last); tt[last].hidden = true; }
+    more.querySelector('b').textContent = (tt.length - keep.size) + ' more';
   }
   function paintTabs(){
     tabRow.innerHTML = '';
@@ -502,6 +514,7 @@ export function mountWorkspaces(ws, o){
     try { window.dispatchEvent(new Event('resize')); } catch (e) {}
   }
   window.addEventListener('resize', () => { if (ix) fitTabs(); });
+  new ResizeObserver(() => { if (ix) fitTabs(); }).observe(tabs);
   let shownTabs = null;
   function paint(){
     paintBtn();

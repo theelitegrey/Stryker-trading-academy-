@@ -3,7 +3,7 @@
 // the data is the Footprint's own per-bar order flow (same engine, same bars, so the numbers match). A bar without order flow
 // shows a dash; a symbol without order flow shows one short note. Nothing is estimated from candles.
 // Education only. Not financial advice.
-import { TABLE_ROWS, TOP_OFF, TOP_OFF_PHONE, drawTable, drawNote, NOTE_H } from './chart-bar-stats.js?v=1111';
+import { TABLE_ROWS, TOP_OFF, TOP_OFF_PHONE, drawTable, drawNote, NOTE_H } from './chart-bar-stats.js?v=1115';
 
 export const BS_TYPE = 'stk_barstats';
 export const BS_TYPES = [BS_TYPE];

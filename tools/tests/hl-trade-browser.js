@@ -104,10 +104,11 @@ const sheetText = (p) => txt(p, '#stkhl-cf');
 
 async function run(b, tag, o) {
   const { ctx, p, errors, sent, bad } = await open(b, o);
-  const btn = await p.evaluate(() => !!document.getElementById('stkhl-btn'));
-  if (!o.admin) { check(!btn && !(await p.evaluate(() => !!document.getElementById('stkhl'))), tag + ': non-admin sees no Hyperliquid trading button or panel'); check(!errors.length, tag + ': no page errors ' + errors.join(' | ').slice(0, 300)); await ctx.close(); return; }
-  check(btn, tag + ': admin sees the Wallet button');
-  await click(p, '#stkhl-btn'); await sleep(1200);
+  const btn = await p.evaluate(() => !!document.getElementById('stkhl-btn') || !!document.getElementById('stkhl-btn-gone'));
+  const hlOk = await p.evaluate(() => !!(window.__stkHl && window.__stkHl.open));
+  if (!o.admin) { check(!btn && !hlOk && !(await p.evaluate(() => !!document.getElementById('stkhl'))), tag + ': non-admin sees no Hyperliquid trading button or panel'); check(!errors.length, tag + ': no page errors ' + errors.join(' | ').slice(0, 300)); await ctx.close(); return; }
+  check(!btn && hlOk, tag + ': admin: no Wallet button in the bar, panel reachable via window.__stkHl (Trade menu row)');
+  await p.evaluate(() => window.__stkHl.open()); await sleep(1200);
   if (o.country === 'US') {
     const t = await txt(p, '#stkhl');
     check(/not available in your region/.test(t) && !/Connect wallet/.test(t), tag + ': US -> "not available in your region", no connect button');

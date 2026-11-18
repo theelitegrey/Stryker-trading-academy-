@@ -99,6 +99,7 @@ export function draw(pop, live, paper) {
     if (!live.accounts.length) h += '<div class="stktm-empty">' + (live.loaded ? 'No broker connected yet.' : 'Loading accounts…') + '</div>';
     h += live.accounts.map((a) => liveRow(a, live, act && act.id === a.id)).join('') + '</div>';
     h += '<div class="stktm-foot"><button type="button" role="menuitem" class="stktm-pill stktm-add" data-a="connect" tabindex="-1">' + SV(16, '<path d="M12 5v14M5 12h14"/>', 2.2) + 'Connect a broker</button><button type="button" role="menuitem" class="stktm-pill stktm-manage" data-x="manage" tabindex="-1">' + SLIDERS + 'Manage</button></div>';
+    if (window.__stkHl) h += '<button type="button" role="menuitem" class="stktm-pill stktm-hl" data-a="hl" tabindex="-1">Hyperliquid wallet</button>';   // admin only: hl-trade.js sets window.__stkHl after its admin check
   }
   pop.innerHTML = h;
   pop.classList.toggle('stktm-admin', !!live || !!(paper && paper.off));

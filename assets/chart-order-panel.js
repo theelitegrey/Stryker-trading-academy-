@@ -30,11 +30,11 @@
 // Hotkeys: B = Buy, S = Sell (market, Scalp quantity) — OFF by default, only while the panel is open and not typing in a field.
 // Tests: tools/tests/chart-live-browser.js (live + member paper, mocked endpoints only).
 // Education only. Not financial advice.
-import * as L from './chart-live-core.js?v=1111';
-import { acquire, rootState, l2Root, l2Delayed } from './chart-futures-l2.js?v=1111';
-import { openSource, SOURCES } from './book-panel-sources.js?v=1111';
-import { pairOf } from './book-panel-core.js?v=1111';
-import { futRoot } from './chart-sym.js?v=1111';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
+import * as L from './chart-live-core.js?v=1115';
+import { acquire, rootState, l2Root, l2Delayed } from './chart-futures-l2.js?v=1115';
+import { openSource, SOURCES } from './book-panel-sources.js?v=1115';
+import { pairOf } from './book-panel-core.js?v=1115';
+import { futRoot } from './chart-sym.js?v=1115';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 
 const PHONE_MAX = 700, W_MIN = 352, W_MAX = 640, DW_MIN = 280, DW_MAX = 480, DW_DEF = 340, H_MIN = 300, W_DEF = 360, H_DEF = 640, PRESETS = [10, 25, 50, 100], QUOTE_MAX_AGE = 15000;
 const DISCLAIMER = 'Education only. Not financial advice.';

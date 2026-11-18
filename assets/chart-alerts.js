@@ -49,9 +49,9 @@
 //     open: no phone push for them.
 // Education only. Not financial advice. Alerts are a convenience, not a trading signal.
 
-import { locked as proLocked, upgrade as proUpgrade } from './chart-pro-gate.js?v=1111';
-import * as DPA from './chart-dp-alerts.js?v=1111';   // dark pool print alerts (server-side, students/{uid}/dpAlerts)
-import * as MA from './chart-metric-alerts.js?v=1111';   // metric alerts (GEX levels, funding, OI change; server-side, students/{uid}/metricAlerts)
+import { locked as proLocked, upgrade as proUpgrade } from './chart-pro-gate.js?v=1115';
+import * as DPA from './chart-dp-alerts.js?v=1115';   // dark pool print alerts (server-side, students/{uid}/dpAlerts)
+import * as MA from './chart-metric-alerts.js?v=1115';   // metric alerts (GEX levels, funding, OI change; server-side, students/{uid}/metricAlerts)
 const LAYER = 'stk_alerts';
 const PREFS_KEY = 'stryker_chart_alert_prefs';
 const MAX_ALERTS = 1000;
@@ -608,7 +608,7 @@ export function openAlerts(prefill){
 // ---- ZoroOptions alerts (spec section 4). Pro. Stored in students/{uid}/zoroAlerts (the price-alert shape and rules stay
 // untouched); the server alert-engine (workers/alert-engine/zoro_alerts.py) checks them and sends the phone push.
 // Text of every push follows the options copy rules; this panel only creates, lists, pauses and deletes them.
-const ZTYPES = { level_touch: 'Level touch', zone_change: 'Gamma Zone change', level_moved: 'Level moved', fresh_volume: 'Fresh Volume', volume_burst: 'Volume Burst', iv_rank: 'IV rank cross', pc_extreme: 'Put/call extreme', note_ready: 'Morning Note ready' };
+const ZTYPES = { level_touch: 'Level touch', zone_change: 'Gamma Zone change', level_moved: 'Level moved', fresh_volume: 'Fresh Volume', volume_burst: 'Volume Burst', iv_rank: 'IV rank cross', pc_extreme: 'Put/call extreme', note_ready: 'Morning Note ready', node_change: 'Spectra node change' };
 const ZLEVELS = [['call_ceiling', 'Call wall'], ['put_floor', 'Put wall'], ['flip_line', 'Zero gamma'], ['range_high', 'Zoro Range high'], ['range_low', 'Zoro Range low']];
 const ZLEVELL = Object.fromEntries(ZLEVELS);
 const ZRANGEL = { '0': '0DTE', '1': '1DTE', w: 'weekly', m: 'monthly' };
@@ -624,6 +624,7 @@ function zClean(a){
   if (t === 'fresh_volume') q.min_volume = Math.max(1, Math.round(Number(p.min_volume) || 100));
   if (t === 'volume_burst') q.min_added = Math.max(1, Math.round(Number(p.min_added) || 500));
   if (t === 'iv_rank' || t === 'pc_extreme') { q.dir = p.dir === 'below' ? 'below' : 'above'; q.value = Number(p.value); }
+  if (t === 'node_change') { q.k = Number(p.k); q.x = String(p.x || '').slice(0, 10); q.view = p.view === 'vex' ? 'vex' : 'gex'; q.dir = p.dir === 'shrink' ? 'shrink' : 'grow'; q.pct = Number(p.pct); q.base = Number(p.base); }   // made on the Spectra board
   return { type: t, symbol: t === 'note_ready' ? 'NOTE' : String(a.symbol || '').trim().toUpperCase().slice(0, 12), p: q, message: String(a.message || '').slice(0, 140), freq: a.freq === 'every' ? 'every' : 'once', active: a.active !== false };
 }
 const zValid = (a) => !!a.symbol && /^[A-Z0-9.\-]{1,12}$/.test(a.symbol) && ((a.type !== 'iv_rank' && a.type !== 'pc_extreme') || (Number.isFinite(a.p.value) && (a.type !== 'iv_rank' || (a.p.value >= 0 && a.p.value <= 100))));
@@ -637,6 +638,7 @@ function zText(a){
     case 'volume_burst': return s + ' Volume Burst, ' + p.min_added + '+ contracts';
     case 'iv_rank': return s + ' IV rank moves ' + p.dir + ' ' + p.value;
     case 'pc_extreme': return s + ' put/call moves ' + p.dir + ' ' + p.value;
+    case 'node_change': return s + ' Spectra node ' + p.k + ' ' + p.x + ' ' + String(p.view).toUpperCase() + ' ' + (p.dir === 'shrink' ? 'shrinks' : 'grows') + ' ' + p.pct + '%';
     default: return 'Zoro Morning Note is ready';
   }
 }
@@ -701,6 +703,7 @@ function zRows(list){
     row.querySelector('[data-k=pause]').textContent = a.active ? 'Pause' : 'Restart';
     row.querySelector('[data-k=pause]').onclick = async () => { try { await zcol().doc(a.id).update({ active: !a.active, updatedAt: fb().firestore.FieldValue.serverTimestamp() }); a.active = !a.active; } catch (e) { toastFn('Could not update the alert.'); } renderList(); };
     row.querySelector('[data-k=edit]').onclick = () => { panel.querySelector('.stk-al-form').hidden = true; zOpen(a); };
+    if (a.type === 'node_change') row.querySelector('[data-k=edit]').hidden = true;   // made on the Spectra board: delete and make a new one there
     row.querySelector('[data-k=del]').onclick = async () => { try { await zcol().doc(a.id).delete(); zAlerts = zAlerts.filter((x) => x !== a); } catch (e) { toastFn('Could not delete the alert.'); } renderList(); };
     list.appendChild(row);
   }
@@ -726,7 +729,7 @@ function build(){
       <div class="stk-al-fbtn"><button type="button" class="stk-al-cancel">Cancel</button><button type="submit" class="stk-al-save">Create</button></div>
     </form>
     <form class="stk-al-form stk-al-zform" hidden>
-      <label class="stk-al-wide">Options alert<select name="zt">${Object.entries(ZTYPES).map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>
+      <label class="stk-al-wide">Options alert<select name="zt">${Object.entries(ZTYPES).filter(([v]) => v !== 'node_change').map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>
       <label data-z="sym">Symbol<input name="zs" maxlength="12" value="SPX" autocapitalize="characters" required></label>
       <label data-z="level" hidden>Level<select name="zl">${ZLEVELS.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>
       <label data-z="range" hidden>Range<select name="zr"><option value="0">0DTE</option><option value="1">1DTE</option><option value="w">Weekly</option><option value="m">Monthly</option></select></label>

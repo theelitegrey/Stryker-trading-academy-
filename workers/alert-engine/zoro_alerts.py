@@ -20,7 +20,8 @@ Education only. Not financial advice.
 """
 import re
 
-TYPES = ('level_touch', 'zone_change', 'level_moved', 'fresh_volume', 'volume_burst', 'iv_rank', 'pc_extreme', 'note_ready')
+TYPES = ('level_touch', 'zone_change', 'level_moved', 'fresh_volume', 'volume_burst', 'iv_rank', 'pc_extreme', 'note_ready', 'node_change')
+BOARD_SYMS = ('SPX', 'SPY', 'QQQ', 'GLD')        # Spectra boards (the feeder's tier A set the site shows)
 MAX_PER_MEMBER = 25
 LEVELS = ('call_ceiling', 'put_floor', 'flip_line', 'range_high', 'range_low')
 LEVEL_NAME = {'call_ceiling': 'Call Wall', 'put_floor': 'Put Wall', 'flip_line': 'Zero Gamma',
@@ -90,6 +91,12 @@ def parse_zoro_alert(uid, aid, d, ut=''):
             if q['dir'] not in ('above', 'below') or q['value'] != q['value'] or abs(q['value']) == float('inf'):
                 return None
             if t == 'iv_rank' and not 0 <= q['value'] <= 100:
+                return None
+        elif t == 'node_change':
+            # Spectra: one board cell (strike k, expiry x, gex|vex) grows / shrinks by pct % from base ($M, the cell when created)
+            q = {'k': float(p['k']), 'x': str(p['x']), 'view': p.get('view', 'gex'), 'dir': p['dir'], 'pct': float(p['pct']), 'base': float(p['base'])}
+            if (sym not in BOARD_SYMS or q['view'] not in ('gex', 'vex') or q['dir'] not in ('grow', 'shrink') or not re.match(r'^\d{4}-\d{2}-\d{2}$', q['x'])
+                    or not 0 < q['pct'] <= 1000 or q['base'] != q['base'] or abs(q['base']) == float('inf') or q['k'] != q['k']):
                 return None
         return {'id': uid + '/' + aid, 'uid': uid, 'aid': aid, 'type': t, 'symbol': sym, 'p': q,
                 'message': str(d.get('message') or '')[:140], 'freq': 'every' if d.get('freq') == 'every' else 'once', 'ut': ut}
@@ -216,6 +223,40 @@ def evaluate(a, snap, prev):
         if _cross(o, n, p['dir'], p['value']):
             return _wrap('%s put/call by volume moved %s %s, now %s.' % (sym, p['dir'], fmt_n(p['value'], 2), fmt_n(n, 2)), a)
     return None
+
+
+def board_cell(board, view, k, x):
+    """$M value of one Spectra board cell, None when the board no longer has that strike row or expiry column."""
+    try:
+        ci = board['x'].index(x)
+        ri = next(i for i, kk in enumerate(board['k']) if abs(float(kk) - k) < 1e-6)
+        v = board[view][ci][ri]
+        return float(v) if v is not None else None
+    except (KeyError, ValueError, StopIteration, IndexError, TypeError):
+        return None
+
+
+def evaluate_node(a, board):
+    """node_change against the newest board: fires when |cell| has grown (or shrunk) by pct % from |base|. A cell that is gone
+    (expired, or the strike left the board) never fires. Returns the push text or None."""
+    p = a['p']
+    v = board_cell(board, p['view'], p['k'], p['x']) if board else None
+    if v is None:
+        return None
+    b, n = abs(p['base']), abs(v)
+    hit = n >= b * (1 + p['pct'] / 100) if p['dir'] == 'grow' else n <= b * (1 - p['pct'] / 100)
+    if not hit or (p['dir'] == 'grow' and n == 0):
+        return None
+    word = 'grew' if p['dir'] == 'grow' else 'shrank'
+    ch = (n - b) / b * 100 if b else 0
+    return _wrap('%s Spectra node %s, %s %s: %s by %s%%, now %s.' % (a['symbol'], fmt_n(p['k'], 2 if p['k'] % 1 else 0), p['x'], p['view'].upper(), word,
+                                                                     fmt_n(abs(ch), 0), fmt_m(v)), a)
+
+
+def fmt_m(v):
+    a = abs(v)
+    s = '-' if v < 0 else ''
+    return s + ('$%.1fB' % (a / 1000) if a >= 1000 else '$%.1fM' % a if a >= 1 else '$%.0fK' % (a * 1000))
 
 
 class Cooldown:

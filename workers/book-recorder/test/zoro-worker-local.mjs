@@ -207,4 +207,30 @@ r = await X('u=SPX&from=2026-01-01&to=2026-11-03'); ok(r.status === 400, 'export
 const rl = { RL_ZX: { limit: async () => ({ success: false }) } };
 r = await zoExportRoute(new Request('https://w.dev/zo/levels-export?' + q0), U('/zo/levels-export?' + q0), Object.assign({}, env, rl), wctx, {}, deps(true));
 ok(r.status === 429, 'export rate limit -> 429');
+
+// ---- Spectra board: tier A ingest, snapshots kept for the velocity view (?vs=), thinning, validation
+{
+  const B = (t, g) => ({ v: 1, u: 'SPX', built: t, t, spot: 6800, step: 10, k: [6790, 6800, 6810], x: ['2026-11-20'], tag: ['0DTE'], gex: [[g, 2, 3]], vex: [[0.1, 0.2, 0.3]] });
+  let r = await post('route=board&u=AAPL', Object.assign(B(now - 5, 1), { u: 'AAPL' }));
+  ok(r.status === 400, 'board ingest: tier B symbol -> 400');
+  for (const [age, g] of [[600, 5], [320, 7], [65, 8], [5, 10]]) { r = await post('route=board&u=SPX', B(now - age, g)); ok(r.status === 200, 'board ingest ' + age + ' s ago -> 200'); }
+  const G = (q, tok = 'pro') => zoGetRoute(new Request('https://w.dev/zo/board?' + q), U('/zo/board?' + q), env, wctx, {}, deps(tok === 'pro'));
+  let j = await (await G('u=SPX')).json();
+  ok(j.gex[0][0] === 10 && j.prev === undefined && /Education only/.test(j.notice), 'board GET: newest board, no prev without vs');
+  j = await (await G('u=SPX&vs=60')).json();
+  ok(j.prev && j.prev.gex[0][0] === 8 && j.prev.t === now - 65, 'board vs=60 -> the board >= 60 s older (8)');
+  j = await (await G('u=SPX&vs=300')).json();
+  ok(j.prev && j.prev.gex[0][0] === 7, 'board vs=300 -> 320 s older (7)');
+  j = await (await G('u=SPX&vs=900')).json();
+  ok(j.prev === null, 'board vs=900 -> none old enough: prev null (no made-up change)');
+  r = await G('u=SPX&vs=42'); ok(r.status === 400, 'board vs not in the list -> 400');
+  r = await G('u=AAPL'); ok(r.status === 400, 'board u tier B -> 400');
+  r = await G('u=SPX', 'none'); ok(r.status === 403, 'board without member token -> 403 (no teaser)');
+  const cnt = () => sql.exec('SELECT COUNT(*) AS n FROM zoboard WHERE u = ?', 'SPX').toArray()[0].n;
+  for (let i = 0; i < 6; i++) sql.exec('INSERT INTO zoboard (u, t, gz) VALUES (?, ?, ?)', 'SPX', now - 3 * 3600 - i * 60, new Uint8Array([1]));
+  sql.exec('INSERT INTO zoboard (u, t, gz) VALUES (?, ?, ?)', 'SPX', now - 5 * 86400, new Uint8Array([1]));
+  const before = cnt();
+  await post('route=board&u=SPX', B(now - 1, 11));
+  ok(cnt() <= before - 5 && cnt() >= 5, 'board thinning: > 2 h keeps one per 15 min, > 4 days dropped (' + before + ' -> ' + cnt() + ')');
+}
 console.log('\n' + n + ' checks passed');

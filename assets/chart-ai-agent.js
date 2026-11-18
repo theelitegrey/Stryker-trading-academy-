@@ -17,8 +17,8 @@
 // "paused") and Disconnect (this tab closes the relay until the member turns it on again from the ⋯ menu entry
 // "Connect your AI", or reloads). Each action shows a toast ("Claude added EMA 20").
 // NO TRADING: there are no order tools; the relay only accepts the tool names below.
-import { normalizeSymbol } from './chart-watchlist.js?v=1111';
-import { parseIv } from './chart-intervals.js?v=1111';
+import { normalizeSymbol } from './chart-watchlist.js?v=1115';
+import { parseIv } from './chart-intervals.js?v=1115';
 
 const SCOPE_OF = {
   chart_status: 'mcp:read', chart_read: 'mcp:read', symbol_resolve: 'mcp:read', chart_screenshot: 'mcp:read',
@@ -110,7 +110,7 @@ export function mountAiAgent(ws, opts = {}) {
   const menuBtn = document.getElementById('stkc-ai-btn');
   if (menuBtn) menuBtn.addEventListener('click', () => {
     // Owner 16 Nov 2026: a popup on the chart, never a page change (assets/chart-ai-popup.js)
-    import('./chart-ai-popup.js?v=1111').then((m) => m.openAiPopup({
+    import('./chart-ai-popup.js?v=1115').then((m) => m.openAiPopup({
       toast, opener: menuBtn,
       status: () => ({ on: !!(sock && sock.readyState === 1 && grants.length), paused, off: ss.get(OFF_KEY) === '1', names: [...new Set(grants.map((g) => g.name))] }),
       togglePause, turnOff, turnOn,

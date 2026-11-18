@@ -1,6 +1,6 @@
 // TradeZoro — Charts PAPER TRADING (ES module, charts.html only)
-import * as TM from './chart-trade-menu.js?v=1111';
-import { normFutures } from './chart-sym.js?v=1111';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
+import * as TM from './chart-trade-menu.js?v=1115';
+import { normFutures } from './chart-sym.js?v=1115';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 // Owner order 2026-10-12: "Add complete full demo/paper trading feature inside the charts, like
 // tradingview". Modelled on TradingView's Paper Trading, in our own look.
 //
@@ -1703,6 +1703,7 @@ function mountToolbar(bar){
     if (a === 'paper') { if (liveOn()) L.leave(true); if (!paperOn() && liveOf()) setPaperEnabled(true); orderPanel(); }   // Paper again after a disconnect = on
     else if (a === 'live' && L) L.pick(it.dataset.id).then(() => orderPanel());
     else if (a === 'connect' && L) L.connect();
+    else if (a === 'hl' && window.__stkHl) window.__stkHl.open();
   });
   document.addEventListener('click', (e) => { if (!pop.hidden && !wrap.contains(e.target)) setOpen(false); });
   pop.addEventListener('keydown', (e) => TM.keys(pop, e));

@@ -42,21 +42,13 @@ export function mountHlTrade(ws, opts) {
   const go = (uid) => {
     const d = window.db || (window.firebase && firebase.firestore && firebase.firestore());
     if (!d || !uid) return;
-    d.collection('admins').doc(uid).get().then((a) => { if (a.exists) { S.admin = true; addButton(bar); setInterval(pushLines, 2000); } }).catch(() => {});
+    d.collection('admins').doc(uid).get().then((a) => { if (a.exists) { S.admin = true; window.__stkHl = { open: openPanel }; setInterval(pushLines, 2000); } }).catch(() => {});
   };
   try { firebase.auth().onAuthStateChanged((u) => { if (u && !S.admin) go(u.uid); }); } catch (e) {}
 }
-function addButton(bar) {
-  if (!bar || document.getElementById('stkhl-btn')) return;
-  const b = document.createElement('button');
-  b.type = 'button'; b.id = 'stkhl-btn'; b.className = 'stkc-btn'; b.title = 'Hyperliquid trading (admin beta, testnet)'; b.setAttribute('aria-label', 'Hyperliquid trading');
-  b.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M16 12.5h2M3 10h18"/></svg><span class="stkc-btn-l">Wallet</span>';
-  b.onclick = () => openPanel();
-  bar.insertBefore(b, bar.firstChild);
-}
 async function loadCore() {
   if (C) return C;
-  C = await import('./hl-trade-core.js?v=1111');
+  C = await import('./hl-trade-core.js?v=1115');
   limiter = C.makeLimiter();
   return C;
 }

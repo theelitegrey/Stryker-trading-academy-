@@ -19,22 +19,22 @@
 // Simulation / education only: nothing here places or suggests an order.
 // Education only. Not financial advice.
 
-import { flowDays, pinSessions } from './chart-frvp-data.js?v=1111';
-import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, stacked, unfinished, cvdCandles, profile, vwapSeries, heavyLimit, vivid } from './chart-footprint-data.js?v=1111';
+import { flowDays, pinSessions } from './chart-frvp-data.js?v=1115';
+import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, stacked, unfinished, cvdCandles, profile, vwapSeries, heavyLimit, vivid } from './chart-footprint-data.js?v=1115';
 
-import { liveOfOn, liveFlow, onLiveFlow, overlayLive, setLiveThr, compareMinutes, liveDeliveries } from './chart-live-of.js?v=1111';
-import { bigPrints, bigThreshold, swingSegments, pocRevisits } from './chart-of-pro-data.js?v=1111';
-import { installOfPro, PRO_TYPES } from './chart-of-pro.js?v=1111';
-import { installFpPatterns, FPAT_TYPES } from './chart-fp-patterns.js?v=1111';
-import { installChartTypes } from './chart-types.js?v=1111';
-import { rtHeadersReady } from './rt-access.js?v=1111';
-import { isCrypto, cryptoFeed, cryptoFeeds } from './chart-footprint-crypto.js?v=1111';
-import { installDeltaSuite, DS_TYPES } from './chart-delta-suite.js?v=1111';
-import * as BT from './chart-bigtrades.js?v=1111';
-import { installTsTrades, TS_TYPES } from './chart-ts-trades.js?v=1111';
-import { CYAN, MONO, TOP_OFF, TOP_OFF_PHONE, TABLE_ROWS, alpha, fmt, fmtD, tableRowsFor, drawTable as drawBarStats } from './chart-bar-stats.js?v=1111';
-import { installBarStats, BS_TYPES } from './chart-bar-stats-ind.js?v=1111';
-import { isFutures, splitSym } from './chart-sym.js?v=1111';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
+import { liveOfOn, liveFlow, onLiveFlow, overlayLive, setLiveThr, compareMinutes, liveDeliveries } from './chart-live-of.js?v=1115';
+import { bigPrints, bigThreshold, swingSegments, pocRevisits } from './chart-of-pro-data.js?v=1115';
+import { installOfPro, PRO_TYPES } from './chart-of-pro.js?v=1115';
+import { installFpPatterns, FPAT_TYPES } from './chart-fp-patterns.js?v=1115';
+import { installChartTypes } from './chart-types.js?v=1115';
+import { rtHeadersReady } from './rt-access.js?v=1115';
+import { isCrypto, cryptoFeed, cryptoFeeds } from './chart-footprint-crypto.js?v=1115';
+import { installDeltaSuite, DS_TYPES } from './chart-delta-suite.js?v=1115';
+import * as BT from './chart-bigtrades.js?v=1115';
+import { installTsTrades, TS_TYPES } from './chart-ts-trades.js?v=1115';
+import { CYAN, MONO, TOP_OFF, TOP_OFF_PHONE, TABLE_ROWS, alpha, fmt, fmtD, tableRowsFor, drawTable as drawBarStats } from './chart-bar-stats.js?v=1115';
+import { installBarStats, BS_TYPES } from './chart-bar-stats-ind.js?v=1115';
+import { isFutures, splitSym } from './chart-sym.js?v=1115';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 const RECORDER = 'https://book-recorder.theelitegrey.workers.dev';
 const ROOTS = { NQ: 'NQ', MNQ: 'NQ', ES: 'ES', MES: 'ES', YM: 'YM', MYM: 'YM', GC: 'GC', MGC: 'GC', SI: 'SI', SIL: 'SI', CL: 'CL', MCL: 'CL' };
 const FREE_ROOT = 'NQ';
@@ -358,7 +358,7 @@ class FootprintEngine {
   constructor() { this.cfg = fpConfig(FP_DEF); this.on = false; this.onAny = () => this.push(); this.l2own = {}; this.l2m = undefined; this.l2v = -1; this.l2tm = 0; this.onL2 = () => this.l2Tick(); }
   start(ctx) { this.ctx = ctx; this.on = true; this.fitted = false; users++; startRefresh(); listeners.add(this.onAny); this.push(); }
   // L2 data: chart-l2-flow.js loads once; its hub fires on every book frame, the footprint only needs the trade minutes (<= 5 redraws a second)
-  loadL2() { if (this.l2m !== undefined || this.l2p) return; this.l2p = import('./chart-l2-flow.js?v=1111').then((m) => { this.l2m = m; this.push(); }, () => { this.l2m = false; this.push(); }); }
+  loadL2() { if (this.l2m !== undefined || this.l2p) return; this.l2p = import('./chart-l2-flow.js?v=1115').then((m) => { this.l2m = m; this.push(); }, () => { this.l2m = false; this.push(); }); }
   l2Tick() {
     if (this.l2tm || !this.on) return;
     this.l2tm = setTimeout(() => { this.l2tm = 0; const v = this.l2m ? this.l2m.fpVersion(this.l2own) : 0; if (v !== this.l2v) this.push(); }, 200);

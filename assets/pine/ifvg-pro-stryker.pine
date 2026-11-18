@@ -309,9 +309,13 @@ f_run(k, isNew, isOn) =>
                 t.lL  := low
                 t.lLb := bar_index
 
-// confirmed bars only: a forming bar re-runs on every tick and these objects are not rolled back, so a
-// new-HTF-bar flag would push the same candle again and again and corrupt the levels the RR box hangs on
-if barstate.isconfirmed
+// once per bar only. The chart engine re-runs the last bar on every tick, and once more when the next bar arrives; it
+// rolls back drawings and plain vars but NOT arrays / objects. isconfirmed alone (16 Nov fix) still let a closed last
+// bar change state twice (its own close, then the re-run when the next bar came), so setups were armed twice, entries
+// and stops came from the wrong candles and the RR box sat off price until the script was re-added (member report
+// 18 Nov). State now changes only on a closed bar that is no longer the last one: the engine runs that exactly once.
+settled = barstate.isconfirmed and not barstate.islast
+if settled
     f_run(0, new0, on0)
     f_run(1, new1, on1)
     f_run(2, new2, on2)
@@ -322,7 +326,7 @@ if barstate.isconfirmed
 // ─────────────────────────────────────────────────────────────────────────────
 //  CHART-TIMEFRAME FVG LIBRARY
 // ─────────────────────────────────────────────────────────────────────────────
-if barstate.isconfirmed and bar_index > 2
+if settled and bar_index > 2
     bool gUp = low > high[2] and close[1] > open[1]
     bool gDn = high < low[2] and close[1] < open[1]
     if (gUp or gDn)
@@ -368,7 +372,7 @@ int  ifvgDir = 0
 inSess = not sessOn or (sAsia and not na(time(timeframe.period, sAsiaTx, sessTz))) or (sLdn and not na(time(timeframe.period, sLdnTx, sessTz))) or (sNY and not na(time(timeframe.period, sNYTx, sessTz)))
 
 // extend live liquidity lines and detect sweeps on close
-if barstate.isconfirmed and array.size(liqs) > 0
+if settled and array.size(liqs) > 0
     for i = array.size(liqs) - 1 to 0
         Liq q = array.get(liqs, i)
         if not q.swept
@@ -423,7 +427,7 @@ if barstate.isconfirmed and array.size(liqs) > 0
                     label.set_x(q.lb, bar_index)
 
 // while waiting: track the wick extreme, adopt a nearer gap if one forms, look for the inversion
-if pDir != 0 and barstate.isconfirmed
+if pDir != 0 and settled
     pExt := pDir == 1 ? math.max(pExt, high) : math.min(pExt, low)
 
     // a newer same-direction gap is nearer to price — take it
@@ -502,13 +506,13 @@ if array.size(setups) > 0
             box.set_right(st.gapBox, bar_index)
             if not na(st.lb)
                 label.set_x(st.lb, bar_index + 1)
-        if not barstate.isconfirmed and not st.resolved
-            // forming bar: only follow price; pass / fail / resolve wait for the close
+        if not settled and not st.resolved
+            // last bar: only follow price; pass / fail / resolve wait for the settled pass
             if not na(st.rewBox)
                 box.set_right(st.rewBox, bar_index)
             if not na(st.riskBox)
                 box.set_right(st.riskBox, bar_index)
-        if barstate.isconfirmed and not st.resolved and bar_index > st.bar
+        if settled and not st.resolved and bar_index > st.bar
             bool hitSL = bull ? low <= st.stop : high >= st.stop
             bool hit1  = bull ? high >= st.t1  : low <= st.t1
             bool hitTP = bull ? high >= st.tp  : low <= st.tp
@@ -557,10 +561,14 @@ if barstate.islast and showMark
 // ─────────────────────────────────────────────────────────────────────────────
 //  ALERTS
 // ─────────────────────────────────────────────────────────────────────────────
-if aSweep and evSweep
-    alert("IFVG Pro+ [TradeZoro] · liquidity swept · " + syminfo.ticker, alert.freq_once_per_bar_close)
-if aIFVG and evIFVG
-    alert("IFVG Pro+ [TradeZoro] · " + (ifvgDir == 1 ? "bullish" : "bearish") + " IFVG @ " + str.tostring(close, format.mintick) + " · " + syminfo.ticker, alert.freq_once_per_bar_close)
+// events are decided on the settled pass of the bar before the live one, and alerts can only fire on the live bar:
+// they fire on its first tick
+bool alSweep = evSweep[1]
+bool alIFVG  = evIFVG[1]
+if aSweep and alSweep
+    alert("IFVG Pro+ [TradeZoro] · liquidity swept · " + syminfo.ticker, alert.freq_once_per_bar)
+if aIFVG and alIFVG
+    alert("IFVG Pro+ [TradeZoro] · " + (ifvgDir == 1 ? "bullish" : "bearish") + " IFVG @ " + str.tostring(close[1], format.mintick) + " · " + syminfo.ticker, alert.freq_once_per_bar)
 
-alertcondition(evSweep, "IFVG Pro+ [TradeZoro] — Liquidity swept", "A BSL or SSL level was closed through")
-alertcondition(evIFVG,  "IFVG Pro+ [TradeZoro] — IFVG",            "Price closed through the candidate gap — inversion confirmed")
+alertcondition(alSweep, "IFVG Pro+ [TradeZoro] — Liquidity swept", "A BSL or SSL level was closed through")
+alertcondition(alIFVG,  "IFVG Pro+ [TradeZoro] — IFVG",            "Price closed through the candidate gap — inversion confirmed")

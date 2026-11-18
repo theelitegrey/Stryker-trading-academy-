@@ -93,6 +93,7 @@ let panel = null, ticket = null;
 const drag = { on: false };
 let LIVE = null;                     // assets/chart-live.js hook (admins only), see setLiveHook
 const liveOn = () => !!(LIVE && LIVE.active());
+const legendMut = (ms) => ms.every((m) => { const t = m.target, e = t.nodeType === 1 ? t : t.parentElement; return !e || [].every.call(m.addedNodes, (n) => n.nodeType === 3) && [].every.call(m.removedNodes, (n) => n.nodeType === 3) || !!e.closest('title,.vela-statusline,.vela-widget-bottombar,.stklat-chip'); });   // SMOOTH: the legend / bottom-bar readouts change on every pointer move while panning; they never hold a dialog or menu
 export function setLiveHook(hk){ LIVE = hk; applyEnabled(); renderPanel(); }
 
 // ------------------------------------------------------------------ small helpers
@@ -1583,7 +1584,7 @@ function wireSettingsDialog(dlg){
 }
 function watchSettings(){
   const scan = () => document.querySelectorAll('.vela-dialog--settings').forEach(wireSettingsDialog);
-  new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
+  new MutationObserver((ms) => { if (!legendMut(ms)) scan(); }).observe(document.body, { childList: true, subtree: true });
   scan();
 }
 

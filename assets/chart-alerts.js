@@ -63,6 +63,7 @@ const CONDL = Object.fromEntries(CONDS);
 const IND_KEY = 'stryker_chart_alerts_ind';
 const PAUSED_KEY = 'stryker_chart_alerts_paused';
 const pausedIds = () => { try { const v = JSON.parse(localStorage.getItem(PAUSED_KEY) || '[]'); return new Set(Array.isArray(v) ? v : []); } catch (e) { return new Set(); } };
+const legendMut = (ms) => ms.every((m) => { const t = m.target, e = t.nodeType === 1 ? t : t.parentElement; return !e || [].every.call(m.addedNodes, (n) => n.nodeType === 3) && [].every.call(m.removedNodes, (n) => n.nodeType === 3) || !!e.closest('title,.vela-statusline,.vela-widget-bottombar,.stklat-chip'); });   // SMOOTH: the legend / bottom-bar readouts change on every pointer move while panning; they never hold a dialog or menu
 function markPaused(id, on){ try { const s = pausedIds(); if (on) s.add(id); else s.delete(id); localStorage.setItem(PAUSED_KEY, JSON.stringify([...s].slice(-400))); } catch (e) {} }
 // Only alerts that can still fire are drawn on the chart.
 export function drawsOnChart(a){ return !!(a && a.active === true); }
@@ -1046,7 +1047,7 @@ function watchSoundSettings(){
   if (watchSoundSettings.done) return;
   watchSoundSettings.done = true;
   const scan = () => document.querySelectorAll('.vela-dialog--settings').forEach(wireSettingsSounds);
-  new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
+  new MutationObserver((ms) => { if (!legendMut(ms)) scan(); }).observe(document.body, { childList: true, subtree: true });
   scan();
 }
 
@@ -1266,7 +1267,7 @@ function wireSettingsAlert(){
       if (reset && reset.nextSibling) foot.insertBefore(b, reset.nextSibling); else foot.appendChild(b);
     }
   };
-  new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
+  new MutationObserver((ms) => { if (!legendMut(ms)) scan(); }).observe(document.body, { childList: true, subtree: true });
 }
 
 export function installChartAlerts(Core){

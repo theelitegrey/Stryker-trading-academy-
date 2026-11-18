@@ -22,6 +22,7 @@ const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 
 // ---- pure ----------------------------------------------------------------------------------------
 // form values -> the Firestore shape (without timestamps), or { error }
+const legendMut = (ms) => ms.every((m) => { const t = m.target, e = t.nodeType === 1 ? t : t.parentElement; return !e || [].every.call(m.addedNodes, (n) => n.nodeType === 3) && [].every.call(m.removedNodes, (n) => n.nodeType === 3) || !!e.closest('title,.vela-statusline,.vela-widget-bottombar,.stklat-chip'); });   // SMOOTH: the legend / bottom-bar readouts change on every pointer move while panning; they never hold a dialog or menu
 export function buildAlert(v) {
   const symbol = String(v.symbol || '').toUpperCase();
   if (!DP_SYMS.includes(symbol)) return { error: 'Pick one of the covered stocks or ETFs.' };
@@ -213,7 +214,7 @@ export function installDialogNote(ws) {
     }
   };
   const go = () => { if (!timer && document.querySelector('.vela-ind-dialog')) timer = setInterval(paint, 400); paint(); };
-  new MutationObserver(go).observe(document.body, { childList: true, subtree: true });
+  new MutationObserver((ms) => { if (!legendMut(ms)) go(); }).observe(document.body, { childList: true, subtree: true });
   onChange(paint);
 }
 const NOTE_CSS = `.stkdpa-inote{ grid-column:1 / -1; padding:12px 0 4px; font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Roboto,"Segoe UI",system-ui,sans-serif; }

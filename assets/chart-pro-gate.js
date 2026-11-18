@@ -31,6 +31,7 @@ export const L1_TO_L2 = {
 export const PRO_STYLES = ['stk_fp', 'stk_tpoc', 'stk_svp'];   // Pro chart types (Volume footprint, TPO, Session volume profile)
 
 // 'of' | 'gex' | null for a native indicator type (or the 'stk_fp' chart style).
+const legendMut = (ms) => ms.every((m) => { const t = m.target, e = t.nodeType === 1 ? t : t.parentElement; return !e || [].every.call(m.addedNodes, (n) => n.nodeType === 3) && [].every.call(m.removedNodes, (n) => n.nodeType === 3) || !!e.closest('title,.vela-statusline,.vela-widget-bottombar,.stklat-chip'); });   // SMOOTH: the legend / bottom-bar readouts change on every pointer move while panning; they never hold a dialog or menu
 export function kindOf(type) {
   if (OF_TYPES.indexOf(type) >= 0) return 'of';
   if (GEX_TYPES.indexOf(type) >= 0) return 'gex';
@@ -135,5 +136,5 @@ export function mountProGate(ws, opts) {
       if (/^(Volume footprint|Footprint|Time price opportunity|Session volume profile)\b/i.test(t) && t.length < 40) it.appendChild(proTag());
     });
   };
-  new MutationObserver(tag).observe(document.body, { childList: true, subtree: true });
+  new MutationObserver((ms) => { if (!legendMut(ms)) tag(); }).observe(document.body, { childList: true, subtree: true });
 }

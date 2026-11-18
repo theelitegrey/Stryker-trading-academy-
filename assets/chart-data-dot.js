@@ -304,7 +304,9 @@ export function installDataDot(ws, opts = {}) {
 
   const host = document.getElementById('vela-chart');
   // Vela rebuilds statusline pieces on symbol / layout changes: re-attach on any DOM change.
-  if (host) new MutationObserver(schedule).observe(host, { childList: true, subtree: true });
+  // SMOOTH: skip the OHLC / change readouts Vela rewrites on every pointer move (nothing to re-attach there)
+  const readout = (m) => { const e = m.target.nodeType === 1 ? m.target : m.target.parentElement; return !!(e && e.closest('.vela-sl-ohlc,.vela-sl-change,.vela-widget-bottombar')); };
+  if (host) new MutationObserver((ms) => { if (!ms.every(readout)) schedule(); }).observe(host, { childList: true, subtree: true });
   ['state:changed', 'layout:changed', 'cell:active'].forEach((ev) => { try { ws.on(ev, schedule); } catch (e) {} });
   window.addEventListener('stk:venue-blocked', schedule);
   try { rtOnChange(schedule); } catch (e) {}

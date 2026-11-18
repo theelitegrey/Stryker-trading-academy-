@@ -5,6 +5,7 @@
     var tg=document.getElementById('hn-tog'), ln=document.getElementById('hn-links'), pd=document.querySelector('.hn-prod'), th=document.getElementById('theme');
     if(th) th.addEventListener('click',function(){ if(window.toggleStrykerTheme) window.toggleStrykerTheme(); });
     if(tg) tg.addEventListener('click',function(){ var o=ln.classList.toggle('open'); tg.setAttribute('aria-expanded',o); });
+    if(ln) ln.addEventListener('click',function(e){ if(e.target.closest&&e.target.closest('a')&&ln.classList.contains('open')){ ln.classList.remove('open'); if(tg) tg.setAttribute('aria-expanded','false'); } });
     document.addEventListener('click',function(e){ if(pd&&pd.open&&!pd.contains(e.target)) pd.open=false; });
     // Owner 14 Nov: Products opens on hover on desktop (mouse); click/tap still toggles. Short close delay so the pointer can reach the menu.
     if(pd && window.matchMedia && window.matchMedia('(hover:hover) and (pointer:fine)').matches){

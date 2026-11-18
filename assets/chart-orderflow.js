@@ -2177,11 +2177,20 @@ const MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
 const feedTrades = (f) => (f.custom && f.custom.trades ? f.custom.trades() : cryptoFeed((f.provider !== 'binance' && getVenue(f.provider) ? f.provider : 'binance') + ':' + f.ticker.toUpperCase()));
 function cryptoDomLayer() {
   let canvas = null, glr = null;   // glr: the graphics-card heatmap (chart-heatmap-gl.js), Bookmap look only
+  // SMOOTH (2026-11-18): the GL field used to be set display:none at the start of every frame and back to block in draw(); any
+  // style read in between (a canvas font set) dropped and rebuilt its compositor layer, every frame. Now it is hidden only
+  // when a frame ends without a GL draw.
+  function render(a) {
+    if (glr) glr.__shown = false;
+    try { return frame(a); } finally { if (glr && !glr.__shown && glr.canvas.style.display !== 'none') glr.canvas.style.display = 'none'; }
+  }
   return {
     mount(c) { canvas = c; },
-    render(a) {
+    render,
+    destroy() { try { const bd = canvas && canvas.__stkBd; if (bd && bd.__stkGridDim) { bd.style.opacity = ''; bd.__stkGridDim = false; } } catch (e) {} if (glr) glr.destroy(); glr = null; canvas = null; }
+  };
+  function frame(a) {
       const g = beginFrame(canvas, a.coords);
-      if (glr) glr.canvas.style.display = 'none';   // draw() shows it again
       if (!g || !a.data || a.data.off || !a.bars.length) return;
       const f = bookFeeds.get(a.data.feed);
       if (!f || !f.book) return;
@@ -2308,7 +2317,8 @@ function cryptoDomLayer() {
         // the field is opaque, so it must sit UNDER the candles: the first canvas of the plot (background / grid and candles draw above it)
         // the renderer re-inserts canvases when another layer mounts later (e.g. Wall Events added after the heatmap), so this is re-checked every frame;
         // the backdrop is remembered from the FIRST move, so a layer canvas that lands next to the field is never mistaken for it and hidden (found 2026-11-04)
-        try { const par = canvas.parentElement; if (par && par.firstElementChild !== canvas) { if (!canvas.__stkBd) canvas.__stkBd = par.firstElementChild; par.insertBefore(canvas, par.firstElementChild); canvas.__stkBmUnder = true; } } catch (e) {}
+        try { const par = canvas.parentElement, f0 = par && par.firstElementChild; if (par && f0 !== canvas && !(glr && f0 === glr.canvas && canvas.previousElementSibling === f0)) {   // the GL field sits right before it: already the bottom (moving it each frame made the two swap places every frame, SMOOTH 2026-11-18)
+          if (!canvas.__stkBd) canvas.__stkBd = par.firstElementChild; par.insertBefore(canvas, par.firstElementChild); canvas.__stkBmUnder = true; } } catch (e) {}
         // the grid (backdrop canvas, drawn above this field) is dimmed while the heatmap is on, in this chart only
         try { const bd = canvas.__stkBd; if (bd && bd.tagName === 'CANVAS' && bd.style.opacity !== '0') { bd.style.opacity = '0'; bd.__stkGridDim = true; } } catch (e) {}
         g.save(); g.beginPath(); g.rect(0, top, W, a.bounds.height); g.clip();
@@ -2318,7 +2328,8 @@ function cryptoDomLayer() {
         const bmv = { hf: cfg.hf, smooth: cfg.smooth, look: cfg.look, colorBy: cfg.colorBy, x0: 0, x1: Math.max(0, right), fullW: W, top, bot, dpr: co.dpr || 1, hist: bh, now, version: f.version + ':' + all.length, gamma: cfg.gamma,
           priceTop: a.scale.max, priceBot: a.scale.min, tsToX: (t) => co.timeToX(t), priceOfY: (y) => { const yH = yOf(a.scale.max), yL = yOf(a.scale.min); return a.scale.max + (y - yH) / (yL - yH) * (a.scale.min - a.scale.max); } };
         const wantGl = cfg.gpu && heatmapGLOk(); if (wantGl && !glr) glr = createHeatmapGL(canvas); else if (!wantGl && glr) { glr.destroy(); glr = null; }
-        const r = (glr && glr.draw(g, bmv)) || drawBookmap(g, bmv);
+        const rg = glr && glr.draw(g, bmv); if (rg) glr.__shown = true;
+        const r = rg || drawBookmap(g, bmv);
         stat.cells = r.cells; stat.columns = r.columns; stat.bm = r; stat.heatX0 = hist.length ? Math.round(Math.max(0, co.timeToX(hist[0].ts))) : null;
         g.restore();
       }
@@ -2613,9 +2624,7 @@ function cryptoDomLayer() {
       if (step !== domStep) { domStep = step; domRebinMs = Math.round(ms * 10) / 10; domRebinCols = cols.length; }
       stat.ms = Math.round(ms * 10) / 10; stat.rebinMs = domRebinMs; stat.rebinCols = domRebinCols; stat.binned = 0;
       domLast = stat;
-    },
-    destroy() { try { const bd = canvas && canvas.__stkBd; if (bd && bd.__stkGridDim) { bd.style.opacity = ''; bd.__stkGridDim = false; } } catch (e) {} if (glr) glr.destroy(); glr = null; canvas = null; }
-  };
+  }
 }
 // Hiding the indicator (eye) keeps the feed open, so the page keeps recording; only removing
 // it, switching symbol or leaving the page stops recording for that symbol.

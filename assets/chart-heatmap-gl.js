@@ -181,6 +181,7 @@ export function createHeatmapGL(host) {   // host = the chart layer's 2D canvas;
   cv.addEventListener('webglcontextrestored', () => { try { init(); lost = false; } catch (err) { dead = true; } });
   try { init(); } catch (e) { dead = true; }
 
+  let lastCss = '';
   function draw(g, view) {
     if (dead || lost || !gl || gl.isContextLost()) { cv.style.display = 'none'; return null; }
     const S = BM.styleFor(view);
@@ -191,7 +192,10 @@ export function createHeatmapGL(host) {   // host = the chart layer's 2D canvas;
     const W = Math.max(1, Math.round(cssW * dpr)), H = Math.max(1, Math.round(cssH * dpr));
     if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
     // visibility:visible: vela-chart.js hides a layer canvas whose 2D render drew nothing (no depth bars on a closed market), and that must not hide the GL field
-    cv.style.cssText = host.style.cssText + ';pointer-events:none;display:block;visibility:visible'; if (!host.style.cssText) { cv.style.position = 'absolute'; cv.style.left = host.offsetLeft + 'px'; cv.style.top = host.offsetTop + 'px'; cv.style.width = cssW + 'px'; cv.style.height = cssH + 'px'; }
+    // only when it changed (or the layer hid it): a style write per frame is a style recalc per frame
+    const css = host.style.cssText + ';pointer-events:none;display:block;visibility:visible';
+    if (css !== lastCss || cv.style.display === 'none') { cv.style.cssText = css; lastCss = css; }
+    if (!host.style.cssText) { cv.style.position = 'absolute'; cv.style.left = host.offsetLeft + 'px'; cv.style.top = host.offsetTop + 'px'; cv.style.width = cssW + 'px'; cv.style.height = cssH + 'px'; }
     if (host.previousSibling !== cv) par.insertBefore(cv, host);
     const x0 = Math.floor(view.x0), x1 = Math.ceil(view.x1), top = Math.floor(view.top), bot = Math.ceil(view.bot), w = Math.max(0, x1 - x0), h = Math.max(0, bot - top);
     const ty0 = Math.round(top * dpr), ty1 = Math.min(H, Math.round(bot * dpr)), tx0 = Math.round(x0 * dpr);

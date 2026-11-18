@@ -21,7 +21,7 @@ async function open(b, w, theme) {
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_VELA.chart, null, { timeout: 60000 });
   await p.waitForTimeout(2500);
-  await p.evaluate(() => window.__stkPaper.setEnabled(true));
+  await p.evaluate(() => { window.__stkPaper.setEnabled(true); window.__stkPaper.tradeUi(true); });   // Owner 18 Nov: the Paper group shows only while trading is open
   await p.evaluate(async () => { const ws = window.STRYKER_VELA; ws.active.setSymbol('hyperliquid:BTC'); ws.active.setTimeframe('1'); for (let i = 0; i < 40; i++) { await new Promise((r) => setTimeout(r, 250)); if (ws.chart.orchestrator.rawBars.length > 50) break; } });
   await p.waitForTimeout(3000);
   return { ctx, p };
@@ -38,7 +38,7 @@ const measure = (p) => p.evaluate(() => {
   const ranges = [...bar.querySelectorAll('.vela-bb-range')].filter((e) => e.offsetWidth);
   const strip = document.getElementById('stkpt'), sr = strip.getBoundingClientRect();
   return { items, bar: R(bar), grp: q('#stkpt-bb'), tw: q('#stkpt-tw'), trade: q('.stkpt-trade'), all: ranges.length ? R(ranges[ranges.length - 1]) : null, ai: q('.stkai-bb'), lat: q('.stklat-chip'),
-    stripH: getComputedStyle(strip).display === 'none' ? 0 : sr.height, sepGap: [...bar.querySelectorAll('#stkpt-bb .stkpt-sep, #stkpt-tw .stkpt-sep')].map((s) => { const sr2 = s.getBoundingClientRect(), prev = (s.parentElement.id === 'stkpt-bb' ? s.parentElement.previousElementSibling : s.parentElement.previousElementSibling); return { left: sr2.x - prev.getBoundingClientRect().right, rightGap: s.nextElementSibling.getBoundingClientRect().x - sr2.right }; }) };
+    stripH: getComputedStyle(strip).display === 'none' ? 0 : sr.height, sepGap: [...bar.querySelectorAll('#stkpt-bb .stkpt-sep, #stkpt-tw .stkpt-sep')].filter((s) => s.offsetWidth).map((s) => { const sr2 = s.getBoundingClientRect(); let prev = s.parentElement.previousElementSibling; while (prev && !prev.offsetWidth) prev = prev.previousElementSibling; return { left: sr2.x - prev.getBoundingClientRect().right, rightGap: s.nextElementSibling.getBoundingClientRect().x - sr2.right }; }) };
 });
 
 (async () => {
@@ -52,11 +52,11 @@ const measure = (p) => p.evaluate(() => {
       check(spread <= 1, L + 'every item on one centre line (spread ' + spread.toFixed(2) + 'px, ' + m.items.length + ' items)');
       const sorted = [...m.items].sort((a, c) => a.x - c.x);
       check(sorted.every((it, i) => i === 0 || it.x >= sorted[i - 1].r - 0.5), L + 'no overlaps', sorted.map((s) => s.n + ':' + Math.round(s.x) + '-' + Math.round(s.r)));
-      check(m.trade && m.bar.r - m.trade.r <= 12 && m.trade.x > m.lat.r, L + 'Trade is the far right item, right of latency (gap to edge ' + (m.trade && (m.bar.r - m.trade.r).toFixed(1)) + ')');
+      check(!m.trade && !m.tw && await p.evaluate(() => document.querySelectorAll('#stkc-paper-btn').length === 1), L + 'one Trade button only (the header / toolbar one); none in the bottom bar (Owner 18 Nov)');
       check(m.grp && m.grp.x >= m.all.r && (!m.ai || m.grp.x >= m.ai.r), L + 'Paper group right of ALL' + (m.ai ? ' and the AI item' : ''));
-      check(m.trade.h === 24 && m.items.filter((i) => /vela-bb-range|stkpt-toggle|stkpt-badge/.test(i.n)).every((i) => i.h === 24), L + 'Trade / Paper / DEMO / ranges all 24px tall');
+      check(m.items.filter((i) => /vela-bb-range|stkpt-toggle|stkpt-badge/.test(i.n)).every((i) => i.h === 24), L + 'Trade / Paper / DEMO / ranges all 24px tall');
       check(m.sepGap.every((s) => Math.abs(s.left - 10) <= 2.6 && Math.abs(s.rightGap - 12) <= 0.6 || Math.abs(s.left - 12) <= 0.6), L + 'divider spacing 12 (left/right)', m.sepGap);
-      console.log('  numbers', JSON.stringify({ cySpread: +spread.toFixed(2), sepGap: m.sepGap, tradeToEdge: +(m.bar.r - m.trade.r).toFixed(1) }));
+      console.log('  numbers', JSON.stringify({ cySpread: +spread.toFixed(2), sepGap: m.sepGap }));
       if (shot) await p.screenshot({ path: OUT + '/bottombar-' + w + '-' + (theme === 'night' ? 'dark' : 'light') + '.png', clip: { x: 0, y: 740, width: w, height: 160 } });
       if (w === 1440 && theme === 'night') {
         await p.click('.stkpt-toggle'); await p.waitForTimeout(700);
@@ -66,8 +66,8 @@ const measure = (p) => p.evaluate(() => {
       await ctx.close();
     }
     const { ctx, p } = await open(b, 390, 'night');
-    const ph = await p.evaluate(() => { const s = document.getElementById('stkpt').getBoundingClientRect(), t = document.querySelector('.stkpt-trade').getBoundingClientRect(), g = document.querySelector('.stkpt-toggle').getBoundingClientRect(); return { cyd: Math.abs((t.y + t.height / 2) - (g.y + g.height / 2)), tr: t.right, w: innerWidth, overlap: g.right > t.x }; });
-    check(ph.cyd <= 1 && !ph.overlap && ph.tr <= ph.w, '390: Paper + Trade share one row, no overlap', ph);
+    const ph = await p.evaluate(() => { const g = document.querySelector('.stkpt-toggle').getBoundingClientRect(), s = document.querySelector('.stkpt-head').getBoundingClientRect(), t = document.querySelector('.stkpt-trade').getBoundingClientRect(); return { gr: g.right, sr: s.right, w: innerWidth, tradeW: t.width, sw: document.documentElement.scrollWidth }; });
+    check(ph.tradeW === 0 && ph.sr <= ph.w && ph.sw <= ph.w, '390: paper strip fully on screen, no second Trade button in it', ph);
     await p.screenshot({ path: OUT + '/bottombar-390-dark.png', clip: { x: 0, y: 740, width: 390, height: 160 } });
     await ctx.close();
   } finally { await b.close(); }

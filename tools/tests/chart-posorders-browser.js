@@ -23,7 +23,7 @@ async function open(b, w, theme) {
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_VELA.chart, null, { timeout: 60000 });
   await p.waitForTimeout(2500);
-  await p.evaluate(() => window.__stkPaper.setEnabled(true));
+  await p.evaluate(() => { window.__stkPaper.setEnabled(true); window.__stkPaper.tradeUi(true); });   // Owner 18 Nov: phone strip (with this pill) shows only while trading is open
   await p.evaluate(async (s) => { const ws = window.STRYKER_VELA; ws.active.setSymbol(s); ws.active.setTimeframe('1'); for (let i = 0; i < 40; i++) { await new Promise((r) => setTimeout(r, 250)); if (ws.chart.orchestrator.rawBars.length > 50) break; } }, SYM);
   await p.waitForTimeout(3000);
   return { ctx, p, errs };

@@ -424,7 +424,10 @@ async function boot(p, BASE) {
       check(!f.before && f.sw && f.en, 'settings: "Enable paper trading" switch was off, one click turns it on ' + JSON.stringify(f));
       await sleep(2300);
       const u1 = await paperUi(p);
-      check(u1.enabled && u1.cls && u1.panel && u1.trade && u1.oneClick === 1, 'switched ON (no reload): one-click Buy/Sell, panel and Trade button appear ' + JSON.stringify(u1));
+      check(u1.enabled && u1.cls && !u1.panel && u1.trade && u1.oneClick === 0, 'switched ON (no reload): only the Trade button; one-click box + paper strip wait for Trade (Owner 18 Nov) ' + JSON.stringify(u1));
+      await p.evaluate(() => window.__stkPaper.tradeUi(true)); await sleep(2300);
+      const u1b = await paperUi(p);
+      check(u1b.panel && u1b.oneClick === 1, 'trading opened: one-click Buy/Sell and the paper strip appear ' + JSON.stringify(u1b));
       const cs = await p.evaluate(() => JSON.parse(localStorage.getItem('stryker_paper_u1')).settings.enabled);
       check(cs === true, 'switch saved in the paper account settings (local copy)');
     }
@@ -441,8 +444,8 @@ async function boot(p, BASE) {
     check(op1.rail === 'true', 'right toolbar "Trading panel" button shows the panel as open', op1);
     await p.click('#stkop [data-a=close]');
     check(await p.evaluate(() => document.querySelector('.stkw-rail .stkop-railbtn').getAttribute('aria-pressed') === 'false'), 'closing the panel clears the toolbar button');
-    await p.evaluate(() => window.__stkPaper.openPanel('positions'));
-    await p.click('.stkpt-trade');
+    check(await p.evaluate(() => !window.__stkPaper.tradeUiOn && !document.querySelector('.stkpt-1c')), 'closing the order panel hides the trading UI again (one-click box gone)');
+    await p.evaluate(() => { window.__stkPaper.tradeUi(true); window.__stkPaper.openPanel('positions'); window.__stkPaper.openTicket(); });
     await p.waitForSelector('#stkpt-tk:not([hidden])');
     const tag = await p.evaluate(() => document.querySelector('#stkpt-tk .stkpt-tag').textContent + ' | ' + document.querySelector('#stkpt-tk .stkpt-fine').textContent);
     check(/demo money · simulated fills/.test(tag) && /Not financial advice/.test(tag) && /Nothing is sent to any broker/.test(tag), 'ticket labelled paper / demo / no broker');
@@ -645,7 +648,8 @@ async function boot(p, BASE) {
     await p.waitForFunction(() => window.__stkPaper && window.__stkPaper.account, null, { timeout: 60000 });
     const after = await p.evaluate(() => { const s = window.__stkPaper.account.summary(); const a = window.__stkPaper.account.state; return { bal: s.balance, trades: a.trades.length, orders: a.orders.length, pos: Object.keys(a.positions).join(','), j: a.trades.filter((x) => x.journaled).length }; });
     check(JSON.stringify(after) === JSON.stringify(before), 'reload keeps the account (local): ' + JSON.stringify(after));
-    check(await waitFor(p, () => window.__stkPaper.enabled && !!document.querySelector('.stkpt-1c') && !document.getElementById('stkpt').hidden, null, 8000), 'reload keeps paper trading switched ON (buttons + panel back)');
+    check(await waitFor(p, () => window.__stkPaper.enabled && document.documentElement.classList.contains('stkpt-on') && !document.getElementById('stkpt').hidden, null, 8000), 'reload keeps paper trading switched ON');
+    await p.evaluate(() => window.__stkPaper.tradeUi(true));
     // ---- reload with the local copy gone: cloud copy ----
     await p.evaluate(() => localStorage.removeItem('stryker_paper_u1'));
     await p.reload({ waitUntil: 'domcontentloaded' });
@@ -720,7 +724,7 @@ async function boot(p, BASE) {
       await sleep(2300);
       const ur = await paperUi(p);
       check(await p.evaluate(() => window.__stkPaper.replay) && allHidden(ur), 'bar replay while OFF: Replay account shows nothing either ' + JSON.stringify(ur));
-      await p.evaluate(() => window.__stkPaper.setEnabled(true));
+      await p.evaluate(() => { window.__stkPaper.setEnabled(true); window.__stkPaper.tradeUi(true); });
       await sleep(2300);
       const ur2 = await paperUi(p);
       check(ur2.enabled && ur2.panel && ur2.oneClick === 1 && await p.evaluate(() => document.querySelector('.stkpt-badge').textContent === 'Replay account'), 'bar replay: switching ON shows the Replay account UI ' + JSON.stringify(ur2));
@@ -776,6 +780,9 @@ async function boot(p, BASE) {
       check(fit <= 390, 'phone: no sideways overflow after the settings dialog (' + fit + ')');
       await sleep(2300);
     }
+    const ph0 = await paperUi(ph.p);
+    check(ph0.oneClick === 0 && !ph0.panel, 'phone: paper ON but trading not opened = no one-click box, no paper strip ' + JSON.stringify(ph0));
+    await ph.p.evaluate(() => window.__stkPaper.tradeUi(true)); await sleep(2300);
     await ph.p.evaluate(() => { const l = window.__stkPaper.account.last['futures:NQ1!']; window.__stkPaper.placeOrder({ symbol: 'futures:NQ1!', side: 'buy', type: 'market', qty: 1, tp: l + 15, sl: l - 8 }); window.__stkPaper.placeOrder({ symbol: 'futures:NQ1!', side: 'buy', type: 'limit', qty: 1, price: l - 4 }); });
     await sleep(1200);
     await linesOnPricePane(ph.p, 'phone NQ1! 1m');
@@ -813,12 +820,12 @@ async function boot(p, BASE) {
       return { cards: document.querySelectorAll('#stkpt .stkpt-card').length, table: !!document.querySelector('#stkpt table'), sideScroll: v.scrollWidth > v.clientWidth + 1, tp: c ? /TP \d/.test(c.textContent) && /SL \d/.test(c.textContent) : false, h: c ? Math.round(c.getBoundingClientRect().height) : 0 };
     });
     check(cardsOk.cards === 1 && !cardsOk.table && !cardsOk.sideScroll && cardsOk.tp, 'phone positions: compact two-line card with TP + SL, no sideways scroll ' + JSON.stringify(cardsOk));
-    const sheet = await ph.p.evaluate(() => { const r = document.getElementById('stkpt').getBoundingClientRect(); const docW = document.documentElement.scrollWidth; const btns = [...document.querySelectorAll('#stkpt .stkpt-b, #stkpt [role=tab]')].map((x) => x.getBoundingClientRect().height); return { top: r.top, h: r.height, w: r.width, docW, minBtn: Math.min(...btns), pos: getComputedStyle(document.getElementById('stkpt')).position }; });
+    const sheet = await ph.p.evaluate(() => { const r = document.getElementById('stkpt').getBoundingClientRect(); const docW = document.documentElement.scrollWidth; const btns = [...document.querySelectorAll('#stkpt .stkpt-b:not(.stkpt-trade), #stkpt [role=tab]')].map((x) => x.getBoundingClientRect().height); return { top: r.top, h: r.height, w: r.width, docW, minBtn: Math.min(...btns), pos: getComputedStyle(document.getElementById('stkpt')).position }; });
     check(sheet.pos === 'fixed' && sheet.w <= 390 && sheet.docW <= 390 && sheet.minBtn >= 34 && sheet.h < 844 * 0.75, 'phone: Paper trading opens as a bottom sheet, no overflow, thumb-size buttons ' + JSON.stringify(sheet));
     await tbCheck();
     const shotS = `${OUT}/chart-paper-390-sheet.png`;
     await ph.p.screenshot({ path: shotS }); console.log('screenshot', shotS);
-    await ph.p.click('#stkpt .stkpt-trade');
+    await ph.p.evaluate(() => window.__stkPaper.openTicket());
     await ph.p.waitForSelector('#stkpt-tk:not([hidden])');
     await ph.p.check('#stkpt-tk input[name=tpon]');
     await sleep(300);

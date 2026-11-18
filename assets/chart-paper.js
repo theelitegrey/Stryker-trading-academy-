@@ -121,6 +121,17 @@ function h(tag, attrs, kids){
 }
 const showSym = (s) => String(s || '').replace(/^[^:]+:/, '');
 const isPhone = () => window.innerWidth <= PHONE_MAX;
+// Owner 18 Nov: no trading UI on the chart until Trade is clicked. <html class="stktr-on"> while the order panel is open
+// (chart-order-panel.js calls tradeUi on open / close); without it the one-click box and the paper strip stay hidden.
+const tradeUiOn = () => document.documentElement.classList.contains('stktr-on');
+function tradeUi(on){
+  const r = document.documentElement; on = !!on;
+  if (r.classList.contains('stktr-on') === on) return;
+  r.classList.toggle('stktr-on', on);
+  if (!on && ui.open && isPhone()) ui.open = false;   // phone: the positions sheet goes with it
+  renderPanel(); oneClickAll();
+  setTimeout(() => window.dispatchEvent(new Event('resize')), 0);   // the phone strip row came or went: chart re-measures
+}
 function loadUi(){
   let u; try { u = Object.assign({ open: false, tab: 'positions', h: PANEL_H }, JSON.parse(localStorage.getItem(UI_KEY) || '{}')); } catch (e) { u = { open: false, tab: 'positions', h: PANEL_H }; }
   // phone: the sheet always starts as the slim bar; the member opens it when needed
@@ -1006,7 +1017,7 @@ function oneClickAll(){
   for (const cell of cells()) {
     const inst = layerInst(inner(cell)); if (!inst || !inst.overlay) continue;
     let oc = inst.overlay.querySelector('.stkpt-1c');
-    const show = !!acct && paperOn() && !liveOn() && acct.settings.oneClick && specOf(cell.symbol).ok;
+    const show = !!acct && paperOn() && !liveOn() && acct.settings.oneClick && specOf(cell.symbol).ok && tradeUiOn();
     if (!show) { if (oc) oc.remove(); pushLegend(cell, null); continue; }
     if (!oc) {
       oc = h('div', { class: 'stkpt-1c', role: 'group', 'aria-label': 'One-click paper trading' }, [
@@ -1347,6 +1358,9 @@ function renderPanel(){
   { const on = paperOn(), grp = document.getElementById('stkpt-bb'), tw = document.getElementById('stkpt-tw'); const show = on || !!LIVE; if (grp) grp.hidden = !show || liveOn(); if (tw) tw.hidden = !show || liveOn(); }
   const wasOpen = panel.classList.contains('open');
   panel.classList.toggle('open', !!ui.open);
+  // phone: the order sheet sits on top of the paper strip, so both stay on screen while trading is open
+  { const r = !ui.open && !panel.classList.contains('in-bar') && tradeUiOn() ? panel.getBoundingClientRect() : null;
+    document.documentElement.style.setProperty('--stkpt-lift', r && r.height ? Math.max(0, Math.round(window.innerHeight - r.top)) + 'px' : '0px'); }
   applyPanelH();
   if (wasOpen !== !!ui.open) setTimeout(() => window.dispatchEvent(new Event('resize')), 0);
   pq('.stkpt-toggle').setAttribute('aria-expanded', ui.open ? 'true' : 'false');
@@ -2142,6 +2156,10 @@ html.stklv-on .stkpt-badge{ display:none; }
 /* switched off (Chart settings → Paper trading): nothing of paper trading on the page */
 .stkpt[hidden]{ display:none !important; }
 html.stkbp-sheet #stkpt-toasts{ position:fixed; left:8px; right:8px; top:auto; bottom:calc(var(--stkc-dock, 0px) + min(78dvh, 600px) + 8px); max-width:none; z-index:8001; }
+/* one Trade button only (the toolbar / header one); the paper strip shows only while trading is open (Owner 18 Nov) */
+.stkpt-tw{ display:none !important; }
+html:not(.stktr-on) .stkpt,html:not(.stktr-on) #stkpt-bb,html:not(.stktr-on) .stkpt-1c{ display:none !important; }
+html.stktr-on .stkop.is-sheet{ bottom:max(var(--stkc-dock, 0px), var(--stkpt-lift, 0px)); }
 html:not(.stkpt-on) .stkpt-1c,html:not(.stkpt-on):not(.stklv-on) .stkpt-chip,html:not(.stkpt-on) #stkpt-offers,html:not(.stkpt-on) #stkpt-toasts,html:not(.stkpt-on) #stkpt-tk,html:not(.stkpt-on) #stkpt-cq{ display:none !important; }
 /* settings tab: same card look as the Sounds tab */
 .stkpt-set-ui{ display:flex; flex-direction:column; gap:12px; padding:2px 0 12px; color:#eeeeee; font-family:Archivo,system-ui,sans-serif; }
@@ -2247,6 +2265,6 @@ export function mountPaper(ws, opts){
   window.__stkPaper = {
     get account(){ return acct; }, get liveAccount(){ return replay ? liveAcct : acct; }, get replay(){ return !!replay; }, get leader(){ return leader; }, get uid(){ return uid; }, setReplay, replayFeed, resetReplayAccount,
     openTicket, openPanel, placeOrder, orderPanel, flattenSym, setTrailing, toast, closePos, reversePos, flattenAll, cancelOrder, poll, pushLines, sendToJournal,
-    ctxAt, ctxOrder, commitDrag, runHotkey, setLiveHook, get live(){ return liveOn() ? LIVE : null; }, lastPrice: chartLast, renderAll, activeSymbol: () => { const c = activeCell(); return c ? c.symbol : ''; }, tradeSym, setTradeSym, setEnabled: setPaperEnabled, get enabled(){ return paperOn(); }, paperOff, symMeta, openTradeMenu: () => openTradeMenu && openTradeMenu(), label: LABEL, toasts: toastLog, get saves(){ return { saves: saveCount, pushes: cloudPushes, busy: cloudBusy, pending: cloudFirstPending }; }
+    ctxAt, ctxOrder, commitDrag, runHotkey, setLiveHook, get live(){ return liveOn() ? LIVE : null; }, lastPrice: chartLast, renderAll, activeSymbol: () => { const c = activeCell(); return c ? c.symbol : ''; }, tradeSym, setTradeSym, setEnabled: setPaperEnabled, get enabled(){ return paperOn(); }, tradeUi, get tradeUiOn(){ return tradeUiOn(); }, paperOff, symMeta, openTradeMenu: () => openTradeMenu && openTradeMenu(), label: LABEL, toasts: toastLog, get saves(){ return { saves: saveCount, pushes: cloudPushes, busy: cloudBusy, pending: cloudFirstPending }; }
   };
 }

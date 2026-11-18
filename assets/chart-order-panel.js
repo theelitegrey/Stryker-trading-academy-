@@ -780,6 +780,7 @@ function close() {
   update(); updateTradeBtn();
 }
 function updateTradeBtn() {
+  if (P && P.tradeUi) P.tradeUi(open);   // trading UI (one-click box, paper strip) shows only while this panel is open
   const b = document.getElementById('stkc-paper-btn'); if (b && !b.hasAttribute('aria-haspopup')) b.setAttribute('aria-pressed', String(open));
   for (const r of document.querySelectorAll('.stkop-railbtn')) { r.classList.toggle('on', open); r.setAttribute('aria-pressed', String(open)); }
 }

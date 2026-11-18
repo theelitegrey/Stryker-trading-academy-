@@ -66,3 +66,17 @@ console.log('zoro unit OK');
   assert.ok(S2.lineHalf > 0 && S2.liveHold === 10000 && S2.glowFrom <= Math.round(posOf(0.9) * 255));
 }
 console.log('split v2 unit OK');
+// ---- thinCols: one column per pixel, so a long history never overflows the ring (GK 18 Nov: 15m heatmap painted only ~11 h) ----
+{
+  const { thinCols } = GL;
+  const s = (i) => ({ i });
+  const cols = []; for (let k = 0; k < 34560; k++) { const xa = Math.floor(k / 34560 * 1200); cols.push({ s: s(k), xa, xb: xa + 1 }); }
+  const t = thinCols(cols);
+  assert.ok(t.length <= 1200 && t.length >= 1199, 'one column per pixel ' + t.length);
+  assert.ok(t.length < N, 'fits the ring');
+  assert.equal(t[0].xa, 0); assert.equal(t[t.length - 1].s.i, 34559);              // the newest sample of a pixel wins
+  assert.deepEqual(thinCols([{ s: s(1), xa: 0, xb: 40 }, { s: s(2), xa: 40, xb: 80 }]).map((c) => [c.xa, c.xb]), [[0, 40], [40, 80]]);   // wide columns untouched
+  assert.deepEqual(thinCols([{ s: s(1), xa: 5, xb: 6 }, { s: s(2), xa: 5, xb: 9 }]).map((c) => [c.xa, c.xb, c.s.i]), [[5, 9, 2]]);
+  assert.equal(cols[0].xb, 1);                                                          // input not changed
+  console.log('heatmap-gl thinCols OK');
+}

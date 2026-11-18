@@ -26,7 +26,7 @@ const MIN = +(process.env.MINUTES || 3), MID = +(process.env.MID || Math.max(1, 
 // round 2 (hermes/w1-auto-ram2) 30-min run: heap 121 MB, canvas 59.3 MP, renderer+GPU 1382 MB max -> +15 %
 const BUDGET = { heapMB: +(process.env.HEAP_MB || 140), canvasMP: +(process.env.CANVAS_MP || 68), rssMB: +(process.env.RSS_MB || 1590), growPct: 10, growFloorMB: 12 };
 const SYMS = ['NQ1!', 'ES1!'];
-const NATIVES = ['ema', 'stk_of_vwap', 'stk_of_vp', 'stk_of_big', 'stk_dsuite', 'stk_svp', 'stk_pdvp'];
+const NATIVES = process.env.NATIVES ? process.env.NATIVES.split(',') : ['ema', 'stk_of_vwap', 'stk_of_vp', 'stk_of_big', 'stk_dsuite', 'stk_svp', 'stk_pdvp'];   // NATIVES=stk_fp,stk_depth_heat,... : the order-flow mix (GK 18 Nov)
 let fails = 0;
 const check = (ok, msg) => { console.log((ok ? 'PASS ' : 'FAIL ') + msg); if (!ok) fails++; };
 
@@ -74,7 +74,7 @@ async function build(b) {
       const r = await window.STRYKER_PINE.runOnChart(c, src, undefined, false, { engine: 'next', builtin: true });
       return r && r.ok ? (c.indicators() || []).filter((h) => h.nativeType !== 'volume').length : 'pine ' + JSON.stringify(r && r.msg);
     }, [i, NATIVES, lm]);
-    check(added >= 8, `chart ${i + 1} (${SYMS[i]} 1m): 8 indicators on it (${added})`);
+    check(added >= Math.min(8, NATIVES.length + 1), `chart ${i + 1} (${SYMS[i]} 1m): 8 indicators on it (${added})`);
   }
   await p.waitForFunction(() => window.STRYKER_VELA.context().cells.every((c) => window.STRYKER_PINE.pineHandles(c.chart).length === 1), null, { timeout: 120000 }).catch(() => {});
   await p.waitForFunction(() => !document.documentElement.classList.contains('stk-pine-busy'), null, { timeout: 180000, polling: 500 }).catch(() => {});

@@ -18,6 +18,18 @@ export function ringRuns(seq, count, cap = RING_COLS) {
 }
 // 256x1 RGBA8 bytes of a ramp (R, G, B, A per entry) from the packed ABGR table chart-bookmap.js builds
 export const rampBytes = (name) => (BM.lutOf ? new Uint8Array(BM.lutOf(name).buffer.slice(0)) : null);
+// One column per screen pixel: samples whose span starts in the same pixel as the previous column are merged into it (the newest
+// sample wins, the span is extended). Member GK 18 Nov ("heatmap not loading properly"): on 15m the 48 h of 5 s samples (~34 000
+// columns) overflowed the RING_COLS texture, only the newest 8192 (~11 h) were uploaded and the rest of the view stayed empty.
+// cols = [{ s, xa, xb }] sorted by time, xa / xb whole pixels. Returns a new array; the input is not changed.
+export function thinCols(cols) {
+  const out = [];
+  for (const c of cols) {
+    const p = out[out.length - 1];
+    if (p && c.xa <= p.xa) { p.s = c.s; if (c.xb > p.xb) p.xb = c.xb; } else out.push({ s: c.s, xa: c.xa, xb: c.xb });
+  }
+  return out;
+}
 
 // Rank normalisation (same maths as drawBookmap): log histogram of |size| over the visible columns weighted by pixel width ->
 // cdf -> a 1024-entry size -> ramp-index table (rank anchors + contrast gamma). Pure; the Worker runs this same source.
@@ -203,7 +215,7 @@ export function createHeatmapGL(host) {   // host = the chart layer's 2D canvas;
     gl.viewport(0, 0, W, H); gl.enable(gl.SCISSOR_TEST); gl.scissor(0, 0, W, H); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
     if (!w || !h) return { cells: 0, columns: 0, ms: 0, rows: 0, gl: true };
     // the visible samples and their pixel spans (the same carry-forward rule as drawBookmap)
-    const hs = view.hist, cols = [];
+    const hs = view.hist, all = [];
     for (let k = 0; k < hs.length; k++) {
       const s = hs[k]; if (!s.v || !s.v.length || !(s.step > 0)) continue;
       const next = k + 1 < hs.length ? hs[k + 1] : null;
@@ -213,8 +225,9 @@ export function createHeatmapGL(host) {   // host = the chart layer's 2D canvas;
       let xa = view.tsToX(s.ts), xb = next && next.ts <= s.ts + S.hold ? view.tsToX(next.ts) : view.tsToX(end);
       if (!next && view.now - s.ts <= lh) xb = x1;
       if (!(xb > xa) || xb < x0 || xa > x1) continue;
-      cols.push({ s, xa: Math.max(x0, Math.floor(xa)), xb: Math.min(x1, Math.ceil(xb)) });
+      all.push({ s, xa: Math.max(x0, Math.floor(xa)), xb: Math.min(x1, Math.ceil(xb)) });
     }
+    const cols = thinCols(all);   // at most one column per pixel: always fits the ring
     // nothing visible yet (book history still loading): no size table. One built from zero columns has maxSz 1, so every real size
     // would map to the top of the ramp, and nothing rebuilt it while the view stayed put (frozen replay, quiet book).
     if (!cols.length) return { cells: 0, columns: 0, ms: 0, rows: 0, gl: true };
@@ -234,12 +247,13 @@ export function createHeatmapGL(host) {   // host = the chart layer's 2D canvas;
     }
     // instances: span, ring slot, rows, i0, step, and the previous / next visible column (for the one-sample hold)
     if (inst.length < cols.length * STRIDE) inst = new Float32Array(cols.length * STRIDE * 2);
-    let nI = 0, cells = 0;
+    let nI = 0, cells = 0, xFirst = -1;
     const hf = view.hf && view.hf.on ? view.hf : null, hfTop = hf ? hf.top : 0;
     const nb = (ci, s) => { const q = ci >= 0 && ci < cols.length ? cols[ci].s : null, sl = q && q.step === s.step ? owner.get(q.v) : undefined; return sl === undefined ? [-1, 0, 0] : [sl, q.i0, Math.min(q.v.length, texH)]; };
     for (let ci = 0; ci < cols.length; ci++) {
       const c = cols[ci], xa = Math.max(0, Math.round((c.xa - x0) * dpr) + tx0), xb = Math.min(fullX1, Math.round((c.xb - x0) * dpr) + tx0);
       const sl = owner.get(c.s.v); if (xb <= xa || sl === undefined) continue;
+      if (xFirst < 0) xFirst = c.xa;
       const o = nI++ * STRIDE, s = c.s, pv = nb(ci - 1, s), nx = nb(ci + 1, s);
       inst[o] = xa; inst[o + 1] = xb; inst[o + 2] = sl; inst[o + 3] = Math.min(s.v.length, texH); inst[o + 4] = s.i0; inst[o + 5] = s.step;
       inst[o + 6] = pv[0]; inst[o + 7] = pv[1]; inst[o + 8] = pv[2]; inst[o + 9] = S.sided ? BM.boundOf(s) : 0; inst[o + 10] = nx[0]; inst[o + 11] = nx[1]; inst[o + 12] = nx[2]; inst[o + 13] = S.sided && inst[o + 9] > 0 ? 1 : 0; inst[o + 14] = hfTop ? BM.hfCutOf(hfTop, s.v) : 0; cells += s.v.length;
@@ -259,7 +273,7 @@ export function createHeatmapGL(host) {   // host = the chart layer's 2D canvas;
     gl.uniform1f(loc.uMin, hf ? hf.min : 0); gl.uniform1f(loc.uMax, hf ? hf.max : 0); gl.uniform1f(loc.uMinTi, hf ? Math.ceil(hf.p * 255 - 1e-9) : 0);
     gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, nI);
     const ms = Math.round((performance.now() - t0) * 10) / 10;
-    return { cells, columns: nI, ms, rows: ty1 - ty0, p97: Math.round(p97), gl: true, uploads: stats.uploads };
+    return { cells, columns: nI, ms, rows: ty1 - ty0, p97: Math.round(p97), gl: true, uploads: stats.uploads, uploadedCols: stats.uploadedCols, xFirst };
   }
   function destroy() {
     dead = true; clearTimeout(timer);

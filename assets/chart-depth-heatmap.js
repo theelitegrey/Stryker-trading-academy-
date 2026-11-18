@@ -244,6 +244,7 @@ export function dhLayer(H) {
       let lo = 0, hi = nb - 1;
       while (lo < hi) { const m = (lo + hi) >> 1; if (co.timeToX(bars[m].time) < 0) lo = m + 1; else hi = m; }
       const visFrom = bars[lo] ? bars[lo].time : now;
+      stat.visFrom = visFrom;
       f.needRemote(visFrom - cfg.smooth, nb ? bars[nb - 1].time + (nb > 1 ? Math.max(1000, bars[nb - 1].time - bars[nb - 2].time) : 60000) : now);   // market closed: the first read starts at the last bar
       const from = visFrom - 5 * 60000 - cfg.smooth;
       const raw = f.allHistory().filter((h) => h.ts >= from && h.ts <= now);
@@ -266,7 +267,7 @@ export function dhLayer(H) {
       const r = noCells ? { cells: 0, columns: 0 } : (glr && glr.draw(g, bmv)) || drawBookmap(g, bmv);
       if (glr) glr.canvas.style.filter = cfg.hm && cfg.vol ? 'blur(2.5px) saturate(1.25) brightness(1.1)' : '';   // Volumetric = a soft glow
       if (noCells && glr) glr.canvas.style.display = 'none';
-      stat.heat = { cells: r.cells, columns: r.columns, gl: !!r.gl, p97: r.p97, blueShare: r.blueShare };
+      stat.heat = { cells: r.cells, columns: r.columns, gl: !!r.gl, p97: r.p97, blueShare: r.blueShare, xFirst: r.xFirst, uploadedCols: r.uploadedCols };
       // ---- spread of the sizes now (the panel's Sensitivity histogram) + size numbers on the strongest cells (panel View: Values) ----
       if (cfg.hm && hist.length) {
         const last = hist[hist.length - 1], v = last && last.v, bins = new Array(12).fill(0);
@@ -365,6 +366,23 @@ export function dhLayer(H) {
           g.fillStyle = '#38bdf8'; g.fillText('ICE', x, y + 0.5);
         }
         g.textBaseline = 'alphabetic';
+      }
+      // ---- where the recorded book starts (GK 18 Nov: on 15m the heat covered only the right of the chart, with no word why). The
+      // recorder keeps 48 h (chart-futures-l2.js KEEP_MS); bars older than the first sample get a dashed edge and a plain note. ----
+      const hx = !noCells && hist.length ? co.timeToX(hist[0].ts) : -1;   // after the trades, so the price trace never covers the note
+      if (!rp && hx > 24 && hx < plotR - 40) {
+        const floor = Date.now() - (f.keepMs || 48 * 3600000) + 15 * 60000;   // reads still going leftwards towards the view's edge = loading
+        const busy = f.remoteBusy || (hubOf(f) && (f.remoteState === 'none' || (f.remoteState === 'ok' && f.remoteFrom > Math.max(floor, visFrom) + 60000)));
+        const when = a.data.tz ? dayTime(hist[0].ts, a.data.tz, phone) : new Date(hist[0].ts).toISOString().slice(11, 16);
+        const msg = busy ? 'Loading order book history…' : (phone ? 'Book from ' : 'Order book history starts ') + when;
+        const x = Math.round(hx) + 0.5;
+        g.strokeStyle = 'rgba(203,213,225,.45)'; g.lineWidth = 1; g.setLineDash([3, 4]); g.beginPath(); g.moveTo(x, top); g.lineTo(x, bot); g.stroke(); g.setLineDash([]);
+        g.font = '500 12px ' + font; const tw = g.measureText(msg).width, pw = tw + 24, ph = 28;
+        const vh = cfg.volume ? Math.min(phone ? 40 : 70, H0 * 0.14) : 0, py = bot - vh - ph - 12;
+        const px = Math.min(Math.round(hx) + 8, plotR - pw - 8);
+        g.fillStyle = 'rgba(15,15,15,.85)'; g.beginPath(); g.roundRect ? g.roundRect(px, py, pw, ph, 8) : g.rect(px, py, pw, ph); g.fill();
+        g.fillStyle = '#cbd5e1'; g.textBaseline = 'middle'; g.textAlign = 'left'; g.fillText(msg, px + 12, py + ph / 2); g.textBaseline = 'alphabetic';
+        stat.histStart = { ts: hist[0].ts, x: Math.round(hx), msg, pill: [px, py, pw, ph] };
       }
       // ---- last-price line ----
       const ly = Math.round(yOf(lastP)) + 0.5;

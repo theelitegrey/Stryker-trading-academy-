@@ -13215,3 +13215,38 @@ html .vela-dsp-lab{ flex-basis:120px; }
 @media (prefers-reduced-motion:reduce){ .dl-panel{ animation:none; } }
 :root[data-theme="light"] .dl-panel{ box-shadow:0 12px 32px rgba(15,23,42,.14); }
 .dl-menu:not([open]) > .dl-panel{ display:none; }
+
+/* ===== Marketing header (Owner 19 Nov): part of the hero at the top, a separate bar once you scroll =====
+   One rule set for both header markups (.hn on the home/pricing family, .nav everywhere else), keyed on #site-nav.
+   assets/dl-menu.js pulls the first block under the header up behind it (.hdr-pad: -H margin, +H padding, so
+   nothing moves) and adds .hdr-ov; past 24 px it adds .is-scrolled. Without the script the old opaque bar stays. */
+#site-nav{ transition:background-color .2s cubic-bezier(.2,0,0,1), border-color .2s cubic-bezier(.2,0,0,1), -webkit-backdrop-filter .2s, backdrop-filter .2s; border-bottom:1px solid var(--line-soft); }
+#site-nav.hdr-ov{ background:transparent; border-bottom-color:transparent; -webkit-backdrop-filter:none; backdrop-filter:none; box-shadow:none; }
+#site-nav.hdr-ov.is-scrolled, #site-nav.hdr-ov:has(.nav-links[style*="flex"]), #site-nav.hdr-ov:has(.hn-links.open){ background:color-mix(in srgb, var(--bg-0) 72%, transparent); -webkit-backdrop-filter:blur(16px) saturate(160%); backdrop-filter:blur(16px) saturate(160%); border-bottom-color:var(--line); }
+.hdr-pad{ margin-top:calc(-1 * var(--hdr-h)) !important; padding-top:calc(var(--hdr-p0) + var(--hdr-h)) !important; }
+/* one bar height: 64 desktop, 56 phone (DESIGN-STANDARD top bar) */
+#site-nav .nav-inner{ height:64px; padding-top:0; padding-bottom:0; box-sizing:border-box; }
+@media (max-width:767px){ #site-nav .nav-inner{ height:56px; padding:0 16px; } }
+#site-nav .nav-links > a, #site-nav .nfx-row > a{ font-size:14px; font-weight:500; color:var(--ink-1); }
+#site-nav .nav-links > a:hover, #site-nav .nfx-row > a:hover{ color:var(--ink-0); }
+#site-nav .nav-cta, #site-nav .hn-cta{ gap:8px; }
+/* round 36 px icon buttons: theme, log in, menu */
+#site-nav .hn-ic, #site-nav .nav-theme-btn, #site-nav .nav-login, #site-nav .nav-toggle{ box-sizing:border-box; width:36px; height:36px; margin:0; padding:0; flex:none; display:inline-grid; place-items:center; border:0; border-radius:50%; background:transparent; color:var(--ink-1); cursor:pointer; transition:background-color .2s cubic-bezier(.2,0,0,1), color .2s cubic-bezier(.2,0,0,1); }
+#site-nav .hn-ic:hover, #site-nav .nav-theme-btn:hover, #site-nav .nav-login:hover, #site-nav .nav-toggle:hover{ background:var(--bg-3); color:var(--ink-0); }
+#site-nav .hn-ic:focus-visible, #site-nav .nav-login:focus-visible, #site-nav .nav-toggle:focus-visible, #site-nav .nav-theme-btn:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+#site-nav .nav-theme-btn::before, #site-nav .nav-theme-btn::after{ display:none; }
+#site-nav .hn-ic .ci, #site-nav .nav-login svg, #site-nav .nav-toggle svg{ width:20px; height:20px; }
+#site-nav .nav-theme-btn svg{ width:20px; height:20px; margin:-10px 0 0 -10px; }
+#site-nav .nav-toggle{ display:none; }
+#site-nav .hn-tog:not([hidden]){ display:none; }
+@media (max-width:900px){ #site-nav .nav-toggle{ display:inline-grid; } }
+@media (max-width:899px){ #site-nav .hn-tog:not([hidden]){ display:inline-grid; } }
+/* Download: quiet outlined pill */
+#site-nav .dl-menu > summary{ height:36px; padding:0 14px; gap:6px; border:1px solid var(--line); background:transparent; color:var(--ink-1); font-size:14px; font-weight:600; }
+#site-nav .dl-menu > summary:hover, #site-nav .dl-menu[open] > summary{ border-color:var(--line); background:var(--bg-3); color:var(--ink-0); }
+#site-nav .dl-menu > summary .ci{ width:16px; height:16px; } #site-nav .dl-menu > summary .dl-chev{ width:14px; height:14px; }
+/* primary: solid mint pill, no glow */
+#site-nav .btn-primary{ box-sizing:border-box; height:36px; padding:0 16px; border:0; border-radius:999px; background:var(--gold); color:#04130d; font-size:14px; line-height:1; font-weight:600; box-shadow:none; transform:none; transition:filter .2s cubic-bezier(.2,0,0,1); }
+#site-nav .btn-primary:hover{ filter:brightness(1.08); box-shadow:none; transform:none; }
+#site-nav .btn-primary:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+@media (prefers-reduced-motion:reduce){ #site-nav, #site-nav .btn-primary, #site-nav .hn-ic, #site-nav .nav-login, #site-nav .nav-toggle, #site-nav .nav-theme-btn{ transition:none; } }

@@ -17,9 +17,10 @@ site deploy is in the app the same day; only the app shell (this folder) needs a
 - Tray icon (Open, New chart window, Quit), single instance, Ctrl+R reload, F11 full screen.
 - `backgroundThrottling: false` on every window: charts keep updating when covered or on another monitor.
 - Auto-update (installed version only): electron-updater checks GitHub Releases (`desktop-v*` tags) on start
-  and every 4 hours, downloads in the background, installs when the app quits. It never restarts by itself:
-  during futures market hours (Sun 18:00 to Fri 17:00 New York time) it only shows a quiet note; outside them
-  it asks "Restart now / Later". The tray gets "Restart to update". The portable .exe does not self-update.
+  and every 4 hours, downloads in the background, installs when the app quits. It never restarts by itself: when the
+  download is ready an in-app banner at the top of every window offers "Restart to update" (X hides it until the
+  next launch). Notes and the minimum version come from tradezoro.com/app-version.json. The tray also gets
+  "Restart to update". The portable .exe does not self-update. See docs/app-updates.md.
 
 ## Security
 - Every window: `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`, no `<webview>`.

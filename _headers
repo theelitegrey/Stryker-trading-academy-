@@ -189,6 +189,13 @@
   Cache-Control: public, max-age=0, must-revalidate
   X-Robots-Tag: noindex
 
+# App update manifest (docs/app-updates.md). The Android and Windows apps poll it to show the
+# "Update available" banner, so it must never be cached.
+/app-version.json
+  Content-Type: application/json
+  Cache-Control: no-cache, no-store, must-revalidate
+  X-Robots-Tag: noindex
+
 # Android beta build: force a download with the right type.
 /downloads/*.apk
   Content-Type: application/vnd.android.package-archive

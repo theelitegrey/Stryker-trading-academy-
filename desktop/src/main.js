@@ -13,6 +13,7 @@ const http = require('http');
 const policy = require('./policy');
 const handoff = require('./handoff');
 const State = require('./state');
+const Updates = require('./updates');
 
 const ORIGIN = 'https://tradezoro.com';
 const HOME = ORIGIN + '/dashboard-user.html';
@@ -33,6 +34,7 @@ if (process.defaultApp && process.argv.length >= 2) app.setAsDefaultProtocolClie
 else app.setAsDefaultProtocolClient(handoff.PROTOCOL, process.execPath, ['--']);
 
 let state, tray = null, mainWin = null, quitting = false, updateReady = false, trayHintShown = false;
+let updManifest = null, updReadyVer = null, updDismissed = null;   // in-app update banner (src/updates.js)
 const charts = new Map();            // key -> BrowserWindow (pop-out windows)
 const seenNotes = new Set();
 
@@ -361,41 +363,72 @@ function createTray() {
 function quit() { quitting = true; app.quit(); }
 
 // ---------- auto-update (GitHub Releases, tag desktop-v*) ----------
+// electron-updater downloads silently; when it is ready, every app window shows an in-app banner at the top
+// (src/preload.js draws it) with "Restart to update". /app-version.json on the site adds the notes and minVersion:
+// an app below minVersion gets a blocking "Please update" screen. Checks run at start and every 4 hours.
 let autoUpdater = null;
 function setupUpdates() {
-  // Portable .exe cannot self-update, and a dev run has no release feed.
+  checkUpdates(false);
+  setInterval(() => checkUpdates(false), 4 * 60 * 60 * 1000);
+  // Portable .exe cannot self-update, and a dev run has no release feed (the manifest check above still runs).
   if (!app.isPackaged || process.env.PORTABLE_EXECUTABLE_DIR) return;
   try { autoUpdater = require('electron-updater').autoUpdater; } catch (e) { return; }
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;     // a downloaded update installs the next time the app quits
   autoUpdater.on('error', (err) => console.warn('update check failed:', err && err.message));
-  autoUpdater.on('update-downloaded', (info) => {
-    updateReady = true; buildMenu();
-    // Never restart on our own. Inside market hours: only a quiet note. Outside: ask.
-    if (policy.isMarketHours(new Date())) {
-      if (Notification.isSupported()) new Notification({ title: 'TradeZoro update ready', body: 'Version ' + info.version + ' installs when you quit, or choose Restart to update in the tray.', icon: ICON, silent: true }).show();
-      return;
-    }
-    dialog.showMessageBox({ type: 'info', icon: ICON, buttons: ['Restart now', 'Later'], defaultId: 1, cancelId: 1,
-      title: 'Update ready', message: 'TradeZoro ' + info.version + ' is ready.', detail: 'Restart now, or it installs the next time you quit.' })
-      .then((r) => { if (r.response === 0) installUpdate(); });
-  });
-  checkUpdates(false);
-  setInterval(() => checkUpdates(false), 4 * 60 * 60 * 1000);
+  autoUpdater.on('update-downloaded', (info) => onUpdateDownloaded(info && info.version));
+  autoUpdater.checkForUpdates().catch(() => {});
 }
 
+// Never restart on our own: the banner waits for the member. A hidden app gets one quiet toast as well.
+function onUpdateDownloaded(version) {
+  updateReady = true; updReadyVer = version || null; buildMenu(); pushUpdateState();
+  if ((!mainWin || mainWin.isDestroyed() || !mainWin.isVisible()) && Notification.isSupported())
+    new Notification({ title: 'TradeZoro update ready', body: 'Version ' + version + ' installs when you quit, or open TradeZoro and choose Restart to update.', icon: ICON, silent: true }).show();
+}
+
+function fetchManifest() {
+  return net.fetch(ORIGIN + '/app-version.json?t=' + Date.now(), { cache: 'no-store' })
+    .then((r) => (r.ok ? r.text() : null)).then((t) => { const m = t && Updates.parseManifest(t); if (m) { updManifest = m; pushUpdateState(); } })
+    .catch(() => {});
+}
+
+function updateState() {
+  return Updates.bannerState({ installed: app.getVersion(), manifest: updManifest, ready: updReadyVer, dismissed: updDismissed, canInstall: !!autoUpdater });
+}
+function pushUpdateState() {
+  const st = updateState();
+  for (const w of BrowserWindow.getAllWindows()) if (!w.isDestroyed() && policy.isAppUrl(w.webContents.getURL())) w.webContents.send('tz:update', st);
+}
+ipcMain.handle('tz:update-state', (e) => (policy.isAppUrl(e.senderFrame && e.senderFrame.url) ? updateState() : null));
+ipcMain.on('tz:update-action', (e, a) => {
+  if (!policy.isAppUrl(e.senderFrame && e.senderFrame.url)) return;
+  if (a === 'install' && updReadyVer) installUpdate();
+  else if (a === 'dismiss') { updDismissed = updReadyVer; pushUpdateState(); }   // in memory: shows again next launch
+  else if (a === 'download') shell.openExternal(new URL((updManifest && updManifest.url) || '/download', ORIGIN).href);
+});
+
 function checkUpdates(manual) {
+  fetchManifest();
   if (!autoUpdater) {
     if (manual) dialog.showMessageBox({ type: 'info', icon: ICON, message: process.env.PORTABLE_EXECUTABLE_DIR ? 'The portable version does not update itself.' : 'Updates are only checked in the installed app.',
       detail: process.env.PORTABLE_EXECUTABLE_DIR ? 'Download the newest version from tradezoro.com/download.' : '' });
     return;
   }
+  if (manual) updDismissed = null;
   autoUpdater.checkForUpdates().then((r) => {
     if (manual && (!r || !r.isUpdateAvailable)) dialog.showMessageBox({ type: 'info', icon: ICON, message: 'You have the latest version (' + app.getVersion() + ').' });
   }).catch(() => { if (manual) dialog.showMessageBox({ type: 'warning', icon: ICON, message: 'Could not check for updates. Try again later.' }); });
 }
 
 function installUpdate() { quitting = true; autoUpdater && autoUpdater.quitAndInstall(false, true); }
+
+// Test hook for test/update-banner.js only (fake 'update-downloaded' and manifest; never set in a release).
+if (process.env.TZ_UPDATE_TEST === '1') global.__tzUpdateTest = {
+  ready: (v) => onUpdateDownloaded(v),
+  manifest: (m) => { updManifest = Updates.parseManifest(m); pushUpdateState(); },
+  state: () => updateState()
+};
 
 // ---------- start ----------
 app.on('second-instance', (e, argv) => {

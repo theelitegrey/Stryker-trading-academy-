@@ -1,0 +1,19 @@
+{
+  "android": {
+    "versionCode": 10,
+    "versionName": "2.1.0",
+    "url": "/downloads/tradezoro-android-beta.apk",
+    "notes": [
+      "In-app update banner: new versions show at the top of the app."
+    ],
+    "minVersionCode": 1
+  },
+  "windows": {
+    "version": "1.1.0",
+    "url": "/dl/TradeZoro-Setup.exe",
+    "notes": [
+      "Update banner inside the app: restart to update in one click."
+    ],
+    "minVersion": "1.0.0"
+  }
+}

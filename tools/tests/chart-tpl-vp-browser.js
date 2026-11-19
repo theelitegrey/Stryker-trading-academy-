@@ -25,7 +25,8 @@ const IDS = ['vp-monthly', 'vp-weekly', 'vp-daily', 'gex-flow'];
       if (z.mobile) { await p.evaluate(async () => { const m = await import('/assets/chart-tpl-gallery.js'); m.openGallery({ ws: window.STRYKER_VELA, Pine: { clearAllPine() {} }, toast() {} }); }); await sleep(600); await p.evaluate(() => document.querySelector('.stkt-card[data-tpl="vp-daily"]').scrollIntoView()); await sleep(300); await p.screenshot({ path: OUT + '/tpl-gallery-390-dark.png' }); t('390: no horizontal scroll', (await p.evaluate(() => document.documentElement.scrollWidth - innerWidth)) <= 0); await p.keyboard.press('Escape'); }
       for (const id of IDS) {
         await p.evaluate(async () => { const m = await import('/assets/chart-tpl-gallery.js'); m.openGallery({ ws: window.STRYKER_VELA, Pine: { clearAllPine() {} }, toast() {} }); }); await sleep(400);
-        await p.click('.stkt-card[data-tpl="' + id + '"] .stkc-sbtn'); await sleep(4500);
+        if (z.mobile) { await p.tap('.stkt-card[data-tpl="' + id + '"]'); await sleep(300); await p.tap('.stkt-apply-lg'); }   // touch: card -> detail -> Apply
+        else { await p.hover('.stkt-card[data-tpl="' + id + '"]'); await p.click('.stkt-card[data-tpl="' + id + '"] .stkt-apply'); } await sleep(4500);
         const got = await p.evaluate(() => { const c = window.STRYKER_VELA.context().cells[0]; return { sym: c.symbol, tf: c.timeframe, ind: c.chart.indicators().map((h) => [h.nativeType, h.inputValues ? h.inputValues() : {}]) }; });
         const want = await p.evaluate(async (id) => { const m = await import('/assets/chart-tpl-gallery.js'); const T = m.TEMPLATES.find((x) => x.id === id); return { ind: T.ind.map((x) => x[0]), tf: T.tf, sym: T.symbol }; }, id);
         t(z.tag + ' ' + id + ': indicators', JSON.stringify(got.ind.map((x) => x[0]).sort()) === JSON.stringify(want.ind.slice().sort()), { got: got.ind.map((x) => x[0]), want: want.ind });

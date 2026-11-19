@@ -227,11 +227,11 @@ const poll = async (fn, ms) => { const t = Date.now(); while (Date.now() - t < m
     const fq = await poll(() => flashData(p), 1500);
     const nq = LV.QQQ.futures.NQ;
     check(fq && Math.abs(fq.price - (pq * nq.ratio + nq.basis)) < 60, 'click QQQ strike on NQ: flash at the NQ price (' + (fq && fq.price) + ' vs ~' + (pq * nq.ratio + nq.basis).toFixed(2) + ')');
-    // panels share the slot
+    // 19 Nov: rail panels are windows (chart-panel-dock.js): opening News on desktop leaves the ladder open
     await p.click('.stknw-railbtn').catch(() => {});
     await sleep(400);
-    check(!(await p.evaluate(() => window.__stkGexLadder.isOpen)), 'opening News closes the ladder (shared slot)');
-    await p.click('.stkgl-railbtn'); await sleep(500);
+    check(await p.evaluate(() => window.__stkGexLadder.isOpen && window.__stkNews.isOpen), 'opening News keeps the ladder open (windows)');
+    await p.evaluate(() => window.__stkNews.close()); await sleep(300);
     // bar replay: no lookahead -> ladder says so
     await p.evaluate(async (E) => { await window.__stkBarReplay.setStepTf('5'); await window.__stkBarReplay.start(E); }, (session('SPX', 0, DAYS[2])[60].t + 1) * 1000);
     await p.waitForFunction(() => window.__stkBarReplay.state.on && !window.__stkBarReplay.state.busy, null, { timeout: 30000 });
@@ -325,7 +325,7 @@ const poll = async (fn, ms) => { const t = Date.now(); while (Date.now() - t < m
         tabs: [...document.querySelectorAll('#stkgl .stkgl-tab')].filter((t) => t.offsetParent !== null).map((t) => t.dataset.api), foot: document.querySelector('#stkgl .stkgl-foot').innerText }; });
     const align = (p) => p.evaluate(() => { const r = (e) => e.getBoundingClientRect(); const hd = document.querySelector('#stkgl .stkgl-hd'); const items = [...hd.querySelectorAll('.stkgl-title, .stkgl-pk, .stkgl-close')];
       const cy = items.map((e) => Math.round((r(e).top + r(e).height / 2) * 10) / 10); const chips = [...hd.querySelectorAll('.stkgl-pk')]; const gaps = chips.slice(1).map((c, i) => Math.round(r(c).left - r(chips[i]).right));
-      return { cy, chipH: chips.map((c) => Math.round(r(c).height)), closeH: Math.round(r(hd.querySelector('.stkgl-close')).height), gaps, right: Math.round(r(hd).right - r(hd.querySelector('.stkgl-close')).right), left: Math.round(r(hd.querySelector('.stkgl-title')).left - r(hd).left), pickRight: Math.round(r(hd.querySelector('.stkgl-close')).left - r(chips[chips.length - 1]).right), over: hd.scrollWidth > hd.clientWidth + 1 }; });
+      return { cy, chipH: chips.map((c) => Math.round(r(c).height)), closeH: Math.round(r(hd.querySelector('.stkgl-close')).height), gaps, right: Math.round(r(hd).right - r(hd.querySelector('.stkgl-close')).right), left: Math.round(r(hd.querySelector('.stkgl-title')).left - r(hd).left), pickRight: Math.round(r(hd.querySelector('.stkpd-dk') && hd.querySelector('.stkpd-dk').offsetWidth ? hd.querySelector('.stkpd-dk') : hd.querySelector('.stkgl-close')).left - r(chips[chips.length - 1]).right), over: hd.scrollWidth > hd.clientWidth + 1 }; });
     ({ ctx, p, errors } = await open(b, { w: 1440, h: 900 }));
     p.on('request', (r) => { if (/api\/gex\/ladder/.test(r.url())) reqs.push(new URL(r.url()).searchParams.get('u')); });
     await p.evaluate(() => { for (const k of Object.keys(localStorage)) if (/^stryker_gexl_sel_/.test(k)) localStorage.removeItem(k); });

@@ -509,7 +509,7 @@ export function mountDarkPoolPanel(ws) {
   }
   function setOpen(v) {
     open = !!v;
-    if (open) { closeOthers(); if (tip) { tip.hidden = true; pinned = false; } }
+    if (open) { if (!(window.StkPanelDock && window.StkPanelDock.on())) closeOthers(); if (tip) { tip.hidden = true; pinned = false; } }
     panel.hidden = !open;
     host.classList.toggle('stkdkp-open', open);
     document.documentElement.classList.toggle('stkdkp-sheet', open && isPhone());
@@ -530,7 +530,7 @@ export function mountDarkPoolPanel(ws) {
   $('.stkdkp-alert').addEventListener('click', () => { import('./chart-dp-alerts.js?v=1147').then((m) => { if (m.openIndicatorAlerts(ws, true) && isPhone()) setOpen(false); }).catch((e) => console.warn('TradeZoro: dark pool alerts', e)); });
   seg.addEventListener('click', (e) => { const b = e.target.closest('button[data-m]'); if (!b) return; minSize = b.dataset.m; try { localStorage.setItem(LS_PANEL, JSON.stringify({ min: minSize })); } catch (x) {} render(); });
   document.addEventListener('click', (e) => {
-    if (!open || !e.target.closest) return;
+    if (!open || !e.target.closest || window.StkPanelDock && window.StkPanelDock.on()) return;
     if (e.target.closest('.stkw-railbtn:not(.stkdkp-railbtn), .stkw-phonebtn, .stknw-phonebtn, .stkin-phonebtn')) setTimeout(() => { if (host.classList.contains('stkw-open') || host.classList.contains('stknw-open') || host.classList.contains('stkin-open')) setOpen(false); }, 0);
   }, true);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && open && isPhone()) setOpen(false); });

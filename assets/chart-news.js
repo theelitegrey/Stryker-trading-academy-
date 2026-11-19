@@ -147,7 +147,7 @@ export function mountNews(ws, opts) {
   }
   function setOpen(v) {
     open = !!v;
-    if (open) closeWatchlist();
+    if (open && !(window.StkPanelDock && window.StkPanelDock.on())) closeWatchlist();   // desktop: rail panels are windows now (chart-panel-dock.js), several can be open
     panel.hidden = !open;
     host.classList.toggle('stknw-open', open);
     document.documentElement.classList.toggle('stknw-sheet', open && isPhone());
@@ -163,7 +163,7 @@ export function mountNews(ws, opts) {
   closeBtn.addEventListener('click', () => setOpen(false));
   // the Watchlist opening (rail or phone button) closes News
   document.addEventListener('click', (e) => {
-    if (!open || !e.target.closest) return;
+    if (!open || !e.target.closest || window.StkPanelDock && window.StkPanelDock.on()) return;
     if (e.target.closest('.stkw-railbtn:not(.stknw-railbtn), .stkw-phonebtn')) setTimeout(() => { if (wlOpen()) setOpen(false); }, 0);
   }, true);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && open && isPhone()) setOpen(false); });

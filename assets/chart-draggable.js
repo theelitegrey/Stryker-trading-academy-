@@ -12,13 +12,11 @@
   if (window.StkDraggable) return;
   var LS = 'stk_drag_pos.v1', MINV = 48, THRESH = 3;
   // panel selector, header selector, storage key, own = a library dialog with its own (non-persisting) drag that we take over
+  // (the right-rail panels: Book, GEX Ladder, Dark pool, ... are moved / docked by chart-panel-dock.js instead)
   var REGISTRY = [
     ['.stkhm', '.stkhm-h', 'heatmap'],
-    ['.stkbp', '.stkbp-hd', 'book-dom'],
-    ['.stkdkp', '.stkdkp-hd', 'darkpool'],
     ['.stkhll', '.stkhll-hd', 'hl-ladders'],
     ['.stkwi', '.stkwi-hd', 'wallet-intel'],
-    ['.stkgl', '.stkgl-hd', 'gex-ladder'],
     ['.sed', '.sed-hd', 'script-editor'],
     ['.stk-al-box', '.stk-al-head', 'alerts'],
     ['.stk-snd-box', '.stk-al-head', 'alert-sounds'],

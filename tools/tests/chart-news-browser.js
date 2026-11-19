@@ -107,15 +107,11 @@ async function setSym(p, s) {
       await p.screenshot({ path: OUT + '/news-1440-replay.png' });
       console.log('screenshot', OUT + '/news-1440-replay.png');
       await p.evaluate(() => { window.__stkReplay = window.__stkReplayBackup; window.__stkNews.reload(); });
-      // Watchlist shares the slot
+      // 19 Nov: rail panels are windows (chart-panel-dock.js); Watchlist + News both default to docked, so they stack in the dock column
       await p.click('.stkw-railbtn:not(.stknw-railbtn)');
-      await p.waitForTimeout(500);
-      const sw = await p.evaluate(() => ({ news: !document.getElementById('stknw').hidden, wl: !document.getElementById('stkw').hidden }));
-      check(!sw.news && sw.wl, '1440: opening the Watchlist closes News (one slot)', sw);
-      await p.click('.stknw-railbtn');
-      await p.waitForTimeout(500);
-      const sw2 = await p.evaluate(() => ({ news: !document.getElementById('stknw').hidden, wl: !document.getElementById('stkw').hidden }));
-      check(sw2.news && !sw2.wl, '1440: opening News closes the Watchlist', sw2);
+      await p.waitForTimeout(600);
+      const sw = await p.evaluate(() => { const r = (id) => document.getElementById(id).getBoundingClientRect(); const a = r('stkw'), n = r('stknw'); return { news: !document.getElementById('stknw').hidden, wl: !document.getElementById('stkw').hidden, sameCol: Math.round(a.left) === Math.round(n.left) && Math.round(a.width) === Math.round(n.width), noOverlap: a.bottom <= n.top + 1 || n.bottom <= a.top + 1 }; });
+      check(sw.news && sw.wl && sw.sameCol && sw.noOverlap, '1440: Watchlist + News both open, stacked in the dock column', sw);
       check(errors.length === 0, '1440: no console errors', errors);
       await ctx.close();
     }

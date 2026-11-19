@@ -77,7 +77,7 @@ export function mountSpectraPanel(ws, opts) {
   }
   function setOpen(v) {
     open = !!v;
-    if (open) { closeOthers(); follow(); }
+    if (open) { if (!(window.StkPanelDock && window.StkPanelDock.on())) closeOthers(); follow(); }   // desktop: windows (chart-panel-dock.js)
     panel.hidden = !open;
     host.classList.toggle('stksp-open', open);
     document.documentElement.classList.toggle('stksp-sheet', open && isPhone());
@@ -94,7 +94,7 @@ export function mountSpectraPanel(ws, opts) {
   railBtn.addEventListener('click', () => setOpen(!open));
   phoneBtn.addEventListener('click', (e) => { e.stopPropagation(); setOpen(!open); });
   closeBtn.addEventListener('click', () => setOpen(false));
-  document.addEventListener('click', (e) => { if (open && e.target.closest && e.target.closest(OTHERS)) setTimeout(() => setOpen(false), 0); }, true);
+  document.addEventListener('click', (e) => { if (open && !(window.StkPanelDock && window.StkPanelDock.on()) && e.target.closest && e.target.closest(OTHERS)) setTimeout(() => setOpen(false), 0); }, true);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && open && isPhone() && !e.defaultPrevented) setOpen(false); });
   window.addEventListener('resize', () => { document.documentElement.classList.toggle('stksp-sheet', open && isPhone()); }, { passive: true });
   try { ws.on('state:changed', () => { if (open) follow(); }); } catch (e) {}

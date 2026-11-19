@@ -98,7 +98,7 @@ export function mountPhantom(ws, opts) {
   }
   function setOpen(v) {
     open = !!v;
-    if (open) closeOthers();
+    if (open && !(window.StkPanelDock && window.StkPanelDock.on())) closeOthers();   // desktop: windows (chart-panel-dock.js)
     panel.hidden = !open;
     host.classList.toggle('stkph-open', open);
     document.documentElement.classList.toggle('stkph-sheet', open && isPhone());
@@ -116,7 +116,7 @@ export function mountPhantom(ws, opts) {
   railBtn.addEventListener('click', () => setOpen(!open));
   phoneBtn.addEventListener('click', (e) => { e.stopPropagation(); setOpen(!open); });
   closeBtn.addEventListener('click', () => setOpen(false));
-  document.addEventListener('click', (e) => { if (open && e.target.closest && e.target.closest(OTHERS)) setTimeout(() => setOpen(false), 0); }, true);
+  document.addEventListener('click', (e) => { if (open && !(window.StkPanelDock && window.StkPanelDock.on()) && e.target.closest && e.target.closest(OTHERS)) setTimeout(() => setOpen(false), 0); }, true);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && open && isPhone()) setOpen(false); });
   window.addEventListener('resize', () => { document.documentElement.classList.toggle('stkph-sheet', open && isPhone()); }, { passive: true });
   let lastU = null;

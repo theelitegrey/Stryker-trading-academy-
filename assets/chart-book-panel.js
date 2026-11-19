@@ -401,6 +401,8 @@ export function mountBookPanel(ws, opts) {
   }
   const dkBtn = $('.stkbp-dk');
   function applyDock() {
+    // desktop: the shared window manager (chart-panel-dock.js) docks / floats this panel; its own dock button stays hidden
+    if (window.StkPanelDock) { host.classList.remove('stkbp-float'); panel.classList.remove('stkbp-float'); dkBtn.hidden = true; return; }
     host.classList.toggle('stkbp-float', !S.dock); panel.classList.toggle('stkbp-float', !S.dock);
     dkBtn.innerHTML = S.dock ? UNDOCK_IC : DOCK_IC; const t = S.dock ? 'Undock' : 'Dock to right'; dkBtn.title = t; dkBtn.setAttribute('aria-label', t);
     if (S.dock) panel.style.translate = '';
@@ -412,7 +414,7 @@ export function mountBookPanel(ws, opts) {
   dkBtn.addEventListener('click', () => setDock(!S.dock));
   // dragging the header of a docked panel pulls it out (chart-draggable.js then moves it)
   panel.querySelector('.stkbp-hd').addEventListener('pointerdown', (e) => {
-    if (!S.dock || isPhone() || embedBox || (e.button > 0 && e.pointerType === 'mouse') || e.target.closest('button,select,input,label')) return;
+    if (window.StkPanelDock || !S.dock || isPhone() || embedBox || (e.button > 0 && e.pointerType === 'mouse') || e.target.closest('button,select,input,label')) return;
     const x0 = e.clientX, y0 = e.clientY;
     const end = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', end); removeEventListener('pointercancel', end); };
     const mv = (ev) => { if (Math.abs(ev.clientX - x0) + Math.abs(ev.clientY - y0) < 4) return; end(); S.dock = false; applyDock(); save(); try { window.dispatchEvent(new Event('resize')); } catch (er) {} };
@@ -426,9 +428,10 @@ export function mountBookPanel(ws, opts) {
     document.documentElement.classList.toggle('stkbp-sheet', open && isPhone());
     railBtn.setAttribute('aria-pressed', String(open)); railBtn.classList.toggle('on', open); phoneBtn.classList.toggle('on', open);
     if (open) {
-      try { const g = window.__stkGexLadder; if (g && g.isOpen) g.close(); } catch (e) {}
-      try { const n = window.__stkNews; if (n && n.isOpen) n.close(); } catch (e) {}
-      try { if (host.classList.contains('stkw-open')) { const b = document.querySelector('.stkw .stkw-close'); if (b) b.click(); } } catch (e) {}
+      const solo = !(window.StkPanelDock && window.StkPanelDock.on());   // desktop: windows (chart-panel-dock.js), several can be open
+      try { const g = window.__stkGexLadder; if (solo && g && g.isOpen) g.close(); } catch (e) {}
+      try { const n = window.__stkNews; if (solo && n && n.isOpen) n.close(); } catch (e) {}
+      try { if (solo && host.classList.contains('stkw-open')) { const b = document.querySelector('.stkw .stkw-close'); if (b) b.click(); } } catch (e) {}
       try { const o = window.__stkL2Ladder; if (o && o !== api && o.isOpen) o.close(); } catch (e) {}
       attach(); requestAnimationFrame(paint);
     } else { clearTimeout(tm); tm = 0; detach(); closeMenu(); hideLeg(); eng = null; }

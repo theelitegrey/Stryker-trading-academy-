@@ -351,7 +351,7 @@ export function mountGexLadder(ws, opts) {
   function setOpen(v) {
     if (v && ProGate.isFree()) { ProGate.upgrade('gex'); return; }
     open = !!v;
-    if (open) closeOthers();
+    if (open && !(window.StkPanelDock && window.StkPanelDock.on())) closeOthers();   // desktop: windows (chart-panel-dock.js)
     panel.hidden = !open;
     host.classList.toggle('stkgl-open', open);
     document.documentElement.classList.toggle('stkgl-sheet', open && isPhone());
@@ -371,7 +371,7 @@ export function mountGexLadder(ws, opts) {
   railBtn.addEventListener('click', () => setOpen(!open));
   phoneBtn.addEventListener('click', (e) => { e.stopPropagation(); setOpen(!open); });
   closeBtn.addEventListener('click', () => setOpen(false));
-  document.addEventListener('click', (e) => { if (open && e.target.closest && e.target.closest(OTHERS)) setTimeout(() => setOpen(false), 0); }, true);
+  document.addEventListener('click', (e) => { if (open && !(window.StkPanelDock && window.StkPanelDock.on()) && e.target.closest && e.target.closest(OTHERS)) setTimeout(() => setOpen(false), 0); }, true);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && open && isPhone()) setOpen(false); });
   window.addEventListener('resize', () => { document.documentElement.classList.toggle('stkgl-sheet', open && isPhone()); if (open) ladder.relayout(); }, { passive: true });
   try { ws.on('state:changed', () => { if (open) ladder.refresh(); }); } catch (e) {}

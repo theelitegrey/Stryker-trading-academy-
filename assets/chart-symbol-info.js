@@ -169,7 +169,7 @@ export function mountSymbolInfo(ws) {
   }
   function setOpen(v) {
     open = !!v;
-    if (open) closeOthers();
+    if (open && !(window.StkPanelDock && window.StkPanelDock.on())) closeOthers();   // desktop: windows (chart-panel-dock.js)
     panel.hidden = !open;
     host.classList.toggle('stkin-open', open);
     document.documentElement.classList.toggle('stkin-sheet', open && isPhone());
@@ -185,7 +185,7 @@ export function mountSymbolInfo(ws) {
   closeBtn.addEventListener('click', () => setOpen(false));
   // Watchlist or News opening closes this panel
   document.addEventListener('click', (e) => {
-    if (!open || !e.target.closest) return;
+    if (!open || !e.target.closest || window.StkPanelDock && window.StkPanelDock.on()) return;
     if (e.target.closest('.stkw-railbtn:not(.stkin-railbtn), .stkw-phonebtn, .stknw-phonebtn')) setTimeout(() => { if (host.classList.contains('stkw-open') || host.classList.contains('stknw-open')) setOpen(false); }, 0);
   }, true);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && open && isPhone()) setOpen(false); });

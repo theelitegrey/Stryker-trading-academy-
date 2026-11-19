@@ -16,10 +16,13 @@ export const IB_EXT_OPTIONS = ['1.5, 2, 3', '0.5, 1', '1, 2', '1, 1.5, 2', '0.5,
 // Default: it starts at the open and grows right. ax is kept on screen.
 export const tpoAnchorX = (I, x0, w) => (I && I.alignLeft === true ? Math.max(x0, w + 10) : x0);
 export const tpoColX = (left, ax, cw, j) => (left ? ax - cw * (j + 1) : ax + cw * j);
+// Off hides the developing (current) session.
+export const hideToday = (I, last) => !!last && I.showToday === false;
 export const extMults = (s) => String(s || '').split(/[ ,x]+/).map(Number).filter((k) => k > 0 && k <= 10);
 
 // Indicator inputs (chart-of-pro.js TPO_SCHEMA) and chart-type settings rows (chart-types.js).
 export const TPO_EXTRA_INPUTS = [
+  { key: 'showToday', title: 'Show current day', type: 'bool', defval: true, tooltip: 'Off hides the profile of the session still being built (with its POC, VAH, VAL and IB). Older sessions stay.' },
   { key: 'showLetters', title: 'Show letters', type: 'bool', defval: true, tooltip: 'Off hides the period letters. The profile keeps the same width.' },
   { key: 'alignLeft', title: 'Align left (profile sits left of the session open)', type: 'bool', defval: false, tooltip: 'On puts the profile to the left of where the session opens, so a volume profile that grows right from the open sits beside it, not under it.' },
   { key: 'singles', title: 'Highlight single prints (extend until price returns)', type: 'bool', defval: false },
@@ -31,6 +34,7 @@ export const TPO_EXTRA_INPUTS = [
   { key: 'ibExt', title: 'Initial balance extensions (x the IB range)', type: 'string', defval: '1.5, 2, 3', options: IB_EXT_OPTIONS }
 ];
 export const TPO_EXTRA_ROWS = [
+  { kind: 'toggle', key: 'showToday', label: 'Show current day', defval: true },
   { kind: 'toggle', key: 'showLetters', label: 'Show letters', defval: true },
   { kind: 'toggle', key: 'alignLeft', label: 'Align left (profile sits left of the session open)', defval: false },
   { kind: 'toggle', key: 'singles', label: 'Highlight single prints (extend until price returns)', defval: false },

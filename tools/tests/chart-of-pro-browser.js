@@ -105,6 +105,7 @@ const CASES = [
   ['tpo-extras30', 'stk_of_tpo', {}, '30', Date.UTC(2026, 9, 19, 12, 0), D21(17, 0)],
   ['tpo-rows', 'stk_of_tpo', {}, '30', Date.UTC(2026, 9, 19, 12, 0), D21(17, 0)],   // Rows mode (member request 14 Nov)
   ['tpo-left', 'stk_of_tpo', {}, '30', Date.UTC(2026, 9, 20, 12, 0), D21(17, 0)],   // TPO Align left (member request 14 Nov)
+  ['tpo-today', 'stk_of_tpo', {}, '30', Date.UTC(2026, 9, 20, 12, 0), D21(17, 0)],   // TPO Show current day (member request 19 Nov)
   ['evr', 'stk_of_evr', {}, '5', D21(4, 0), D21(17, 0)],
   ['sweep', 'stk_of_sweep', {}, '1', D21(12, 30), D21(16, 30)],
   ['sweep5', 'stk_of_sweep', {}, '5', D21(4, 0), D21(17, 0)]
@@ -171,6 +172,19 @@ const CASES = [
             await setI({ rowMode: 'auto' });
             const n3 = await ink(p);
             check(Math.abs(n3 - n0) <= Math.max(10, n0 * 0.002), eng + ' ' + w + ' ' + id + ': auto again = the default look (' + n0 + ' -> ' + n3 + ' px)');
+          } else if (id === 'tpo-today') {
+            const setI = (o) => p.evaluate((o) => { const h = window.STRYKER_VELA.chart.indicators().find((x) => x.nativeType === 'stk_of_tpo'); h.setInputs(Object.assign({}, h.inputValues(), o)); }, o).then(() => sleep(1500));
+            const defs = await p.evaluate(() => window.STRYKER_VELA.chart.indicators().find((x) => x.nativeType === 'stk_of_tpo').inputValues());
+            check(defs.showToday === true, eng + ' ' + w + ' ' + id + ': Show current day is on by default', defs.showToday);
+            const n0 = await ink(p);
+            await p.screenshot({ path: path.join(OUT, 'ofp-' + (process.env.OFP_THEME ? process.env.OFP_THEME + '-' : '') + eng + '-' + w + '-tpo-today-before.png') });
+            await setI({ showToday: false, ibLines: true });
+            const n1 = await ink(p);
+            check(n1 < n0, eng + ' ' + w + ' ' + id + ': hiding the current day removes its profile (' + n0 + ' -> ' + n1 + ' px)');
+            await p.screenshot({ path: path.join(OUT, 'ofp-' + (process.env.OFP_THEME ? process.env.OFP_THEME + '-' : '') + eng + '-' + w + '-tpo-today-after.png') });
+            await setI({ showToday: true, ibLines: false });
+            const n2 = await ink(p);
+            check(Math.abs(n2 - n0) <= Math.max(10, n0 * 0.002), eng + ' ' + w + ' ' + id + ': on again = the default look (' + n2 + ' px)');
           } else if (id === 'tpo-left') {
             const setI = (o) => p.evaluate((o) => { const h = window.STRYKER_VELA.chart.indicators().find((x) => x.nativeType === 'stk_of_tpo'); h.setInputs(Object.assign({}, h.inputValues(), o)); }, o).then(() => sleep(1500));
             const defs = await p.evaluate(() => window.STRYKER_VELA.chart.indicators().find((x) => x.nativeType === 'stk_of_tpo').inputValues());

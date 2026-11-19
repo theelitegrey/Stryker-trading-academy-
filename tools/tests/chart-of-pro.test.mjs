@@ -240,6 +240,8 @@ ok(X.TPO_EXTRA_INPUTS.some((i) => i.key === 'alignLeft' && i.defval === false) &
 ok(X.tpoAnchorX({}, 100, 80) === 100 && X.tpoAnchorX({ alignLeft: false }, 100, 80) === 100, 'align left: default keeps the profile at the session open');
 ok(X.tpoAnchorX({ alignLeft: true }, 300, 80) === 300 && X.tpoAnchorX({ alignLeft: true }, 20, 80) === 90, 'align left: ends at the open, kept on screen when the open is near the edge');
 ok(X.tpoColX(false, 100, 10, 2) === 120 && X.tpoColX(true, 100, 10, 0) === 90 && X.tpoColX(true, 100, 10, 2) === 70, 'align left: columns grow right by default, left when on');
+ok(X.TPO_EXTRA_INPUTS.some((i) => i.key === 'showToday' && i.defval === true) && X.TPO_EXTRA_ROWS.some((r) => r.key === 'showToday' && r.defval === true), 'show current day: setting exists in indicator + chart type, default on');
+ok(!X.hideToday({}, true) && !X.hideToday({ showToday: true }, true) && X.hideToday({ showToday: false }, true) && !X.hideToday({ showToday: false }, false), 'show current day: only off + developing session is hidden, older days stay');
 // rows mode: every session gets <= N rows whatever its range; ticks mode fixed; auto = 0 (caller falls back)
 for (const rng of [20, 75, 310]) { const r = P.manualRow({ rowMode: 'rows', rowCount: 40 }, rng, 0.25), k = Math.ceil(rng / r); ok(k <= 40 && k >= 20, 'manualRow rows: ' + rng + ' pt -> ' + k + ' rows'); }
 ok(P.manualRow({ rowMode: 'ticks', rowTicks: 4 }, 50, 0.25) === 1 && P.manualRow({ rowMode: 'auto', rowTicks: 4, rowCount: 40 }, 50, 0.25) === 0 && P.manualRow({}, 50, 0.25) === 0, 'manualRow: ticks / auto / unset');

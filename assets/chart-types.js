@@ -6,7 +6,7 @@
 // Education only. Not financial advice.
 import { renko, range, lineBreak, kagi, pnf, sizeOf, guessTick } from './chart-types-math.js?v=1149';
 import { tpoProfile, tpoLetter, autoRow, manualRow, rthKey } from './chart-of-pro-data.js?v=1149';
-import { drawTpoExtras, drawLabels, steadyW, tpoAnchorX, tpoColX, TPO_EXTRA_ROWS, extendsRight, ibMsOf } from './chart-tpo-extras.js?v=1149';
+import { drawTpoExtras, drawLabels, steadyW, tpoAnchorX, tpoColX, TPO_EXTRA_ROWS, extendsRight, ibMsOf, hideToday } from './chart-tpo-extras.js?v=1149';
 
 export const CT_TIME = ['stk_hollow', 'stk_volcandle', 'stk_linemark', 'stk_step', 'stk_hlcarea', 'stk_columns', 'stk_highlow'];
 export const CT_PRICE = ['stk_renko', 'stk_range', 'stk_linebreak', 'stk_kagi', 'stk_pnf'];
@@ -334,7 +334,9 @@ function profileDraw(kind) {
       for (let guard = 0; !man && guard < 12 && (row / tick) * tickPx < (kind === 'tpo' ? (phone ? 9 : 11) : 4); guard++) row *= 2;
       const x0 = Math.max(X(s.i0) - f.pitch / 2, 8), x1 = X(s.i1) + f.pitch / 2;
       if ((x1 < 0 && !ext) || x0 > co.width) continue;
-      const last = s.i1 >= bars.length - 1, span = Math.max(30, (x1 - x0) * 0.9);
+      const last = s.i1 >= bars.length - 1;
+      if (kind === 'tpo' && hideToday(settings, last)) continue;
+      const span = Math.max(30, (x1 - x0) * 0.9);
       if (kind === 'tpo') {
         const mk = s.k + '|' + row + '|' + sb.length + '|' + sb[sb.length - 1].close + '|' + periodMin + '|' + va + '|' + ibMs;
         let p = memo.get('p|' + s.k);

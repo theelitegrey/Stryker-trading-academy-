@@ -19,7 +19,7 @@
 // from installFootprint()); no feed of its own. TPO needs only the chart's candles (time at price).
 // Depends on: assets/chart-of-pro-data.js (maths). Education only. Not financial advice.
 import { absorptionEvents, levelBreaks, imbalanceZones, tpoProfile, tpoLetter, autoRow, manualRow, effortResult, rthKey, sweepEvents } from './chart-of-pro-data.js?v=1149';
-import { drawTpoExtras, drawLabels, steadyW, tpoAnchorX, tpoColX, TPO_EXTRA_INPUTS, extendsRight, ibMsOf } from './chart-tpo-extras.js?v=1149';
+import { drawTpoExtras, drawLabels, steadyW, tpoAnchorX, tpoColX, TPO_EXTRA_INPUTS, extendsRight, ibMsOf, hideToday } from './chart-tpo-extras.js?v=1149';
 
 export const ABS_TYPE = 'stk_of_abs', IMB_TYPE = 'stk_of_imb', TPO_TYPE = 'stk_of_tpo', EVR_TYPE = 'stk_of_evr', SWP_TYPE = 'stk_of_sweep';
 export const PRO_TYPES = [ABS_TYPE, IMB_TYPE, TPO_TYPE, EVR_TYPE, SWP_TYPE];
@@ -413,6 +413,7 @@ function tpoLayer() {
           const pk = s.k + '|' + row + '|' + sb.length + '|' + sb[sb.length - 1].close + '|' + periodMin + '|' + I.va + '|' + I.ib + '|' + ibMs;
           let p = inst.memo.get('tpo|' + s.k);
           if (!p || p.pk !== pk) { p = tpoProfile(sb, { periodMs: periodMin * 60000, row, va: num(I.va, 70), ibPeriods: clamp(Math.round(num(I.ib, 2)), 1, 8), ibMs }); if (!p) continue; p.pk = pk; inst.memo.set('tpo|' + s.k, p); }
+          if (hideToday(I, s.i1 >= a.bars.length - 1)) continue;
           const xs = co.logicalToX(s.i0) - ppb / 2, x1 = co.logicalToX(s.i1) + ppb / 2;
           if (xs > co.width) continue;
           const x0 = Math.max(xs, 8);   // the session began off-screen: the profile sticks to the left edge

@@ -163,6 +163,8 @@ export function normalizeSymbol(raw, feed){
   let s = String(raw || '').trim().replace(/^["']|["']$/g, '');
   if (!s) return null;
   if (/^formula:/i.test(s)) return canonicalFormula(s);   // formula symbols (assets/chart-formula-core.js)
+  // Stocks engine symbols "stocks:NASDAQ:NVDA" (the homepage ticker tape links them; same shape as chart-stocks-provider.js codeOk)
+  if (/^stocks:[A-Z0-9_]{1,16}:[A-Z0-9][A-Z0-9._-]{0,23}$/i.test(s)) return 'stocks:' + s.slice(7).toUpperCase();
   const m = /^([A-Za-z_]+):(.+)$/.exec(s);
   let pre = m ? m[1].toLowerCase() : '';
   let t = (m ? m[2] : s).trim().toUpperCase();

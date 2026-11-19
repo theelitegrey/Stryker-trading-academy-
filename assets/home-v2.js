@@ -8,6 +8,7 @@
 //   3. Scroll reveals (.hv-rv -> .in), IntersectionObserver only.
 //   4. Sticky verb story (desktop >= 900 px): the step for the current scroll position gets .on. Phone: stacked cards, no JS.
 //   5. Persona tabs: WAI-ARIA tabs (click, arrow keys, Home/End).
+//   6. Ticker tape under the hero: real last price + day change from our own chart sources (see tape() below).
 // prefers-reduced-motion (html.hv-rm, set in <head>): everything shows in its final state; the story still switches steps.
 // Depends on: assets/home-v2.css. Header/menu/theme come from assets/home-a.js + assets/theme.js.
 (function () {
@@ -247,8 +248,161 @@
     else { onScreen = true; run(); }
   }
 
+  // ---- ticker tape (Owner 19 Nov round 4) ----
+  // Real prices from the same sources the Charts page and its watchlist use, nothing new, no keys:
+  //   futures / forex / indexes + index ETFs: our /api/chart/bars/<sym>?tf=D (last two daily bars, change vs the previous close),
+  //   stocks: the Screener's own table (book recorder /scan?part=stock: last price + day change, refreshed by our feeder),
+  //   crypto: the exchange's public ticker the crypto charts read (one batched call for all coins, change vs the 00:00 UTC open).
+  // Refresh every REFRESH_MS while the strip is on screen and the tab is visible; a changed price flashes. A failed source keeps
+  // its last value (localStorage, < 3 days); nothing priced at all = the strip stays hidden. Never "real-time" / "delayed".
+  // Motion: CSS marquee on two identical groups (translateX 0 -> -50%), paused on hover/focus, off screen and in a hidden tab;
+  // reduced motion = one static group in a horizontally scrollable row.
+  var TAPE = [ // [key, label, kind, source id, chart symbol, decimals, coin colour]
+    ['NQ', 'NQ', 'fut', 'NQ', 'futures:NQ1!', 2], ['ES', 'ES', 'fut', 'ES', 'futures:ES1!', 2], ['YM', 'YM', 'fut', 'YM', 'futures:YM1!', 0],
+    ['RTY', 'RTY', 'fut', 'RTY', 'futures:RTY1!', 1], ['GC', 'GC', 'fut', 'GC', 'futures:GC1!', 1], ['CL', 'CL', 'fut', 'CL', 'futures:CL1!', 2],
+    ['SPX', 'SPX', 'idx', 'SPX', 'idx:SPX', 2], ['QQQ', 'QQQ', 'idx', 'QQQ', 'idx:QQQ', 2], ['SPY', 'SPY', 'idx', 'SPY', 'idx:SPY', 2],
+    ['NVDA', 'NVDA', 'stk', 'NASDAQ:NVDA', 'stocks:NASDAQ:NVDA', 2], ['AAPL', 'AAPL', 'stk', 'NASDAQ:AAPL', 'stocks:NASDAQ:AAPL', 2],
+    ['TSLA', 'TSLA', 'stk', 'NASDAQ:TSLA', 'stocks:NASDAQ:TSLA', 2],
+    ['BTC', 'BTC', 'cry', 'BTCUSDT', 'binance:BTCUSDT', 2, '#f7931a'], ['ETH', 'ETH', 'cry', 'ETHUSDT', 'binance:ETHUSDT', 2, '#627eea'],
+    ['SOL', 'SOL', 'cry', 'SOLUSDT', 'binance:SOLUSDT', 2, '#9945ff'],
+    ['EURUSD', 'EUR/USD', 'fx', 'EURUSD', 'fx:EURUSD', 5], ['USDJPY', 'USD/JPY', 'fx', 'USDJPY', 'fx:USDJPY', 3]
+  ];
+  var TAPE_KEY = 'hv_tape_v1', REFRESH_MS = 45000, TAPE_PXS = 48, STALE_MS = 3 * 86400000;
+  var RECORDER = 'https://book-recorder.theelitegrey.workers.dev';
+  var CRYPTO = ['https://api.binance.com/api/v3', 'https://api.binance.us/api/v3'];
+  var SVGNS = 'http://www.w3.org/2000/svg';
+  var FLAG = { // 20 x 20 circle flags, drawn here (no image files)
+    EUR: '<rect width="20" height="20" fill="#1f4bb4"/>' + [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(function (i) {
+      var a = i * Math.PI / 6; return '<circle cx="' + (10 + 6 * Math.cos(a)).toFixed(2) + '" cy="' + (10 + 6 * Math.sin(a)).toFixed(2) + '" r="1" fill="#ffd400"/>'; }).join(''),
+    USD: '<rect width="20" height="20" fill="#fff"/>' + [0, 2, 4, 6].map(function (i) { return '<rect y="' + (i * 20 / 7) + '" width="20" height="' + (20 / 7) + '" fill="#c8102e"/>'; }).join('') + '<rect width="10" height="11.43" fill="#1d3b8f"/>',
+    JPY: '<rect width="20" height="20" fill="#fff"/><circle cx="10" cy="10" r="5" fill="#c8102e"/>'
+  };
+  var fmtN = function (v, d) { return v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }); };
+  function getJSON(u) {
+    var c = typeof AbortController === 'function' ? new AbortController() : null, t = c && setTimeout(function () { c.abort(); }, 8000);
+    return fetch(u, c ? { signal: c.signal, cache: 'no-store' } : { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .finally(function () { clearTimeout(t); });
+  }
+  function q2(last, prev) { return isFinite(last) && isFinite(prev) && prev > 0 ? { last: last, pct: (last - prev) / prev * 100 } : null; }
+  function quoteOf(it) { // [t s, o, h, l, c, v] daily bars; a series whose newest bar is > 6 days old is dropped, never shown as today's
+    var u = '/api/chart/bars/' + it[3] + '?tf=D';
+    return getJSON(u).then(function (j) {
+      var b = j.bars || [];
+      if (!b.length || Date.now() / 1000 - b[b.length - 1][0] > 6 * 86400) return null;
+      if (b.length > 1) return q2(b[b.length - 1][4], b[b.length - 2][4]);
+      // the first day of a new (epoch-aligned) daily page holds one bar: the previous close is the last bar of the page before
+      return j.page > 0 ? getJSON(u + '&page=' + (j.page - 1)).then(function (k) { var p = k.bars || []; return p.length ? q2(b[0][4], p[p.length - 1][4]) : null; }) : null;
+    });
+  }
+  var stkAt = 0;
+  function stockQuotes(items) { // the Screener's stock table (gzip JSON, ~340 KB): read at most every 10 min, the feeder's own cadence
+    if (Date.now() - stkAt < 600000 || typeof DecompressionStream !== 'function') return Promise.resolve({});
+    return fetch(RECORDER + '/scan?part=stock').then(function (r) {
+      if (!r.ok) throw new Error(r.status);
+      return r.headers.get('x-scan-gzip') === '1' ? new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).json() : r.json();
+    }).then(function (t) {
+      stkAt = Date.now();
+      var d = t.d || {}, out = {};
+      (d.s || []).forEach(function (s, i) { items.forEach(function (it) { if (it[3] === s && isFinite(d.c[i]) && isFinite(d.chg[i])) out[it[0]] = { last: d.c[i], pct: d.chg[i] }; }); });
+      return out;
+    });
+  }
+  function cryptoQuotes(items) { // one call for every coin; the main exchange first, its US mirror if the main one is blocked here
+    var u = '/ticker/tradingDay?timeZone=0&symbols=' + encodeURIComponent(JSON.stringify(items.map(function (it) { return it[3]; })));
+    var tryAt = function (i) {
+      return getJSON(CRYPTO[i] + u).then(function (rows) {
+        if (!Array.isArray(rows)) throw new Error('shape');
+        var out = {};
+        rows.forEach(function (r) { items.forEach(function (it) { if (it[3] === r.symbol) out[it[0]] = q2(+r.lastPrice, +r.openPrice); }); });
+        return out;
+      }, function (e) { if (i + 1 < CRYPTO.length) return tryAt(i + 1); throw e; });
+    };
+    return tryAt(0);
+  }
+  function iconHTML(it) {
+    if (it[2] === 'fx') {
+      var a = it[1].split('/'), f = function (c, cls) { return '<svg class="' + cls + '" viewBox="0 0 20 20" aria-hidden="true"><clipPath id="hvf' + cls + it[0] + '"><circle cx="10" cy="10" r="10"/></clipPath><g clip-path="url(#hvf' + cls + it[0] + ')">' + FLAG[c] + '</g></svg>'; };
+      return '<span class="hv-tk-ic hv-tk-fx" aria-hidden="true">' + f(a[0], 'a') + f(a[1], 'b') + '</span>';
+    }
+    if (it[2] === 'fut') return '<span class="hv-tk-ic hv-tk-mono" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M5 3v10M11 2v12"/><rect x="3.5" y="5" width="3" height="5" rx=".5"/><rect x="9.5" y="4.5" width="3" height="6" rx=".5"/></svg></span>';
+    if (it[2] === 'cry') return '<span class="hv-tk-ic hv-tk-coin" style="background:' + it[6] + '" aria-hidden="true">' + it[1].charAt(0) + '</span>';
+    return '<span class="hv-tk-ic hv-tk-mono" aria-hidden="true">' + it[1].charAt(0) + '</span>';
+  }
+  function tape(sec) {
+    if (!sec || !window.fetch) return;
+    var vp = sec.querySelector('[data-hv-tape-vp]'), track = sec.querySelector('[data-hv-track]');
+    var rm = root.classList.contains('hv-rm'), data = {}, shown = '', timer = 0, onScreen = true, busy = false;
+    try { var c = JSON.parse(localStorage.getItem(TAPE_KEY) || 'null'); if (c && Date.now() - c.at < STALE_MS && c.q) data = c.q; } catch (e) {}
+    function itemHTML(it) {
+      return '<a class="hv-tk" href="/charts?symbol=' + encodeURIComponent(it[4]) + '" data-k="' + it[0] + '">' + iconHTML(it) +
+        '<b class="hv-tk-s">' + it[1] + '</b><span class="hv-tk-p"></span><span class="hv-tk-c"></span></a>';
+    }
+    function paint(flash) {
+      $$('.hv-tk', track).forEach(function (a) {
+        var it = null; TAPE.forEach(function (x) { if (x[0] === a.getAttribute('data-k')) it = x; });
+        var q = data[it[0]], pct = q.pct, up = pct >= 0;
+        var p = a.querySelector('.hv-tk-p'), ch = a.querySelector('.hv-tk-c'), txt = fmtN(q.last, it[5]);
+        if (flash && p.textContent && p.textContent !== txt) {
+          var dir = q.last > (+p.getAttribute('data-v')) ? 'hv-up' : 'hv-dn';
+          p.classList.remove('hv-up', 'hv-dn'); void p.offsetWidth; p.classList.add(dir);
+        }
+        p.textContent = txt; p.setAttribute('data-v', q.last);
+        ch.className = 'hv-tk-c ' + (up ? 'up' : 'dn'); ch.textContent = (up ? '+' : '\u2212') + Math.abs(pct).toFixed(2) + '%';
+        if (!a.hasAttribute('aria-hidden')) a.setAttribute('aria-label', it[1] + ' ' + txt + ', ' + (up ? 'up ' : 'down ') + Math.abs(pct).toFixed(2) + ' percent on the day. Open the chart');
+      });
+    }
+    function build() {
+      var items = TAPE.filter(function (it) { return data[it[0]]; });
+      var sig = items.map(function (it) { return it[0]; }).join();
+      if (!items.length) { sec.hidden = true; return; }
+      sec.hidden = false;
+      if (sig !== shown) {
+        shown = sig;
+        var one = items.map(itemHTML).join('');
+        track.innerHTML = '<div class="hv-tape-g">' + one + '</div>';
+        if (!rm) {
+          // a group must be wider than the viewport for a seamless loop: repeat the set inside it, then add one identical group
+          var g = track.firstChild, n = 1;
+          while (g.scrollWidth < vp.clientWidth + 40 && n < 6) { g.insertAdjacentHTML('beforeend', one); n++; }
+          track.appendChild(g.cloneNode(true));
+          $$('.hv-tape-g + .hv-tape-g .hv-tk, .hv-tape-g:first-child .hv-tk', track).forEach(function (a, i) {
+            if (i >= items.length) { a.setAttribute('aria-hidden', 'true'); a.tabIndex = -1; }
+          });
+        }
+        paint(false);
+      } else paint(true);
+      if (!rm) track.style.setProperty('--hv-tape-dur', Math.round(track.firstChild.scrollWidth / TAPE_PXS) + 's');
+    }
+    function load() {
+      if (busy) return; busy = true;
+      var of = function (k) { return TAPE.filter(function (it) { return it[2] === k; }); };
+      var put = function (o) { Object.keys(o).forEach(function (k) { if (o[k]) data[k] = o[k]; }); };
+      var jobs = of('fut').concat(of('idx'), of('fx')).map(function (it) {
+        return quoteOf(it).then(function (q) { if (q) data[it[0]] = q; }, function () {});
+      });
+      jobs.push(cryptoQuotes(of('cry')).then(put, function () {}), stockQuotes(of('stk')).then(put, function () {}));
+      Promise.all(jobs).then(function () {
+        busy = false;
+        try { localStorage.setItem(TAPE_KEY, JSON.stringify({ at: Date.now(), q: data })); } catch (e) {}
+        build();
+      });
+    }
+    function schedule() {
+      clearTimeout(timer);
+      var run = onScreen && !doc.hidden;
+      sec.classList.toggle('hv-tape-off', !run);
+      if (run) timer = setTimeout(function () { load(); schedule(); }, REFRESH_MS);
+    }
+    if (hasIO) new IntersectionObserver(function (es) { var was = onScreen; onScreen = es[0].isIntersecting; if (onScreen && !was) load(); schedule(); }).observe(sec);
+    doc.addEventListener('visibilitychange', function () { if (!doc.hidden && onScreen) load(); schedule(); });
+    var rw = 0; window.addEventListener('resize', function () { clearTimeout(rw); rw = setTimeout(function () { shown = ''; build(); }, 200); });
+    build(); load(); schedule();
+    window.__hvTape = { data: data, load: load };   // test hook (read-only use)
+  }
+
   function init() {
     heroArt(doc.querySelector('[data-hv-canvas]'));
+    tape(doc.querySelector('[data-hv-tape]'));
     once(doc.querySelector('[data-hv-fan]'), 'in', 0.35);
     $$('.hv-rv').forEach(function (el) { once(el, 'in', 0.12); });
 

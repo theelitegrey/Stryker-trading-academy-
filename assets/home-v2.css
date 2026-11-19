@@ -68,6 +68,41 @@
 @media (max-width:699px){ .hv-bar{ height:32px; padding:0 12px; } .hv-bar .cm-dots{ display:none; } }
 
 /* ---------- statement ---------- */
+/* ---------- ticker tape (under the hero): real last price + day change, slow marquee, links to the chart ---------- */
+.hv-tape{ position:relative; padding:0; border-block:1px solid var(--line); background:var(--bg-0); }
+:root[data-theme="light"] .hv-tape{ background:var(--bg-1); }
+.hv-tape[hidden]{ display:none; }
+.hv-tape-vp{ overflow:hidden; -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 8%,#000 92%,transparent 100%); mask-image:linear-gradient(90deg,transparent 0,#000 8%,#000 92%,transparent 100%); }
+.hv-tape-tr{ display:flex; width:max-content; }
+.hv-tape-g{ display:flex; flex:none; }
+html:not(.hv-rm) .hv-tape-tr{ animation:hv-tape var(--hv-tape-dur,60s) linear infinite; will-change:transform; }
+html .hv-tape:hover .hv-tape-tr,html .hv-tape:focus-within .hv-tape-tr,html .hv-tape-off .hv-tape-tr{ animation-play-state:paused; }
+@keyframes hv-tape{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
+.hv-tk{ display:inline-flex; align-items:center; gap:8px; height:48px; padding:0 24px; flex:none; white-space:nowrap; text-decoration:none; color:var(--ink-1);
+  font:500 13px/16px var(--font-mono); font-variant-numeric:tabular-nums; border-radius:8px; transition:color .15s var(--hv-ease); }
+.hv-tk:hover{ color:var(--ink-0); }
+.hv-tk:focus-visible{ outline:2px solid var(--gold); outline-offset:-2px; }
+.hv-tk-s{ font-weight:600; color:var(--ink-0); letter-spacing:.01em; }
+.hv-tk-p{ border-radius:4px; padding:0 2px; margin:0 -2px; }
+.hv-tk-c{ font-size:12px; }
+.hv-tk-c.up{ color:var(--bull); } .hv-tk-c.dn{ color:var(--bear); }
+.hv-tk-c::before{ content:""; display:inline-block; margin-right:4px; border-inline:4px solid transparent; vertical-align:1px; }
+.hv-tk-c.up::before{ border-bottom:5px solid currentColor; } .hv-tk-c.dn::before{ border-top:5px solid currentColor; }
+.hv-tk-p.hv-up{ animation:hv-fl-up 1.2s var(--hv-ease); } .hv-tk-p.hv-dn{ animation:hv-fl-dn 1.2s var(--hv-ease); }
+@keyframes hv-fl-up{ from{ background:color-mix(in srgb,var(--bull) 32%,transparent); color:var(--bull); } }
+@keyframes hv-fl-dn{ from{ background:color-mix(in srgb,var(--bear) 32%,transparent); color:var(--bear); } }
+.hv-tk-ic{ position:relative; display:inline-grid; place-items:center; flex:none; width:20px; height:20px; border-radius:50%; font:700 10px/1 var(--font-mono); }
+.hv-tk-mono{ background:var(--bg-3); color:var(--ink-1); box-shadow:inset 0 0 0 1px var(--line); }
+.hv-tk-mono svg{ width:12px; height:12px; fill:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; }
+.hv-tk-coin{ color:#fff; }
+.hv-tk-fx{ width:28px; border-radius:0; }
+.hv-tk-fx svg{ position:absolute; top:2px; width:16px; height:16px; border-radius:50%; box-shadow:0 0 0 1.5px var(--bg-0); }
+:root[data-theme="light"] .hv-tk-fx svg{ box-shadow:0 0 0 1.5px var(--bg-1); }
+.hv-tk-fx .a{ left:0; } .hv-tk-fx .b{ left:11px; }
+/* reduced motion: one static row the visitor can scroll sideways (shared thin scrollbar from style.css) */
+.hv-rm .hv-tape-vp{ overflow-x:auto; overscroll-behavior-x:contain; }
+@media (max-width:699px){ .hv-tk{ height:44px; padding:0 16px; gap:6px; font-size:12px; } .hv-tk-c{ font-size:12px; } .hv-tape-vp{ -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 6%,#000 94%,transparent 100%); mask-image:linear-gradient(90deg,transparent 0,#000 6%,#000 94%,transparent 100%); } }
+
 .hv-say{ padding:96px 0 48px; }
 .hv-say-t{ margin:0; max-width:1040px; font-family:var(--hv-disp); font-size:clamp(26px,3.6vw,48px); line-height:1.18; letter-spacing:-.025em; font-weight:600; color:var(--ink-3); text-wrap:pretty; }
 :root[data-theme="light"] .hv-say-t{ color:var(--ink-2); }

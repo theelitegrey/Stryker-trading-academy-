@@ -33,7 +33,10 @@ export async function serve({ params, request, waitUntil }, deps = {}) {
   // No tag (GitHub hiccup): stream "latest" without the edge cache, so a stale exe is never pinned.
   const src = tag ? `https://github.com/${REPO}/releases/download/${tag}/${name}` : `https://github.com/${REPO}/releases/latest/download/${name}`;
   const key = tag ? new Request(new URL(`/dl/${tag}/${name}`, request.url).toString(), { method: 'GET' }) : null;
-  if (key) { const hit = await cache.match(key); if (hit) return hit; }
+  // The tagged copy is kept a day in our own cache; what the browser/edge gets for /dl/<file> lives only LATEST_TTL_S,
+  // otherwise Cloudflare pins the old exe on the plain URL for a day after a release (seen with desktop-v1.1.0).
+  const outer = (r) => { const o = new Response(r.body, r); o.headers.set('Cache-Control', `public, max-age=${LATEST_TTL_S}, s-maxage=${LATEST_TTL_S}`); return o; };
+  if (key) { const hit = await cache.match(key); if (hit) return outer(hit); }
   const up = await fetchImpl(src, tag ? { redirect: 'follow', cf: { cacheEverything: true, cacheTtl: 86400 } } : { redirect: 'follow' });
   if (!up.ok || !up.body) return Response.redirect(src, 302);
   const h = new Headers();
@@ -42,10 +45,10 @@ export async function serve({ params, request, waitUntil }, deps = {}) {
   h.set('Cache-Control', `public, max-age=${LATEST_TTL_S}, s-maxage=86400`);
   if (tag) h.set('X-TZ-Release', tag);
   const len = up.headers.get('content-length'); if (len) h.set('Content-Length', len);
-  if (!key) return new Response(up.body, { status: 200, headers: h });
+  if (!key) return outer(new Response(up.body, { status: 200, headers: h }));
   const [a, b] = up.body.tee();
   waitUntil(cache.put(key, new Response(b, { status: 200, headers: h })).catch(() => {}));
-  return new Response(a, { status: 200, headers: h });
+  return outer(new Response(a, { status: 200, headers: h }));
 }
 
 export const onRequestGet = (ctx) => serve(ctx);

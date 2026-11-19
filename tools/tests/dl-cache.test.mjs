@@ -30,6 +30,7 @@ calls.length = 0;
 r = await run('TradeZoro-Setup.exe', { cache, fetchImpl });
 assert.equal(await r.text(), 'EXE desktop-v1.0.0');
 assert.ok(!calls.some((u) => u.includes('/download/')), 'served from cache');
+assert.equal(r.headers.get('cache-control'), 'public, max-age=300, s-maxage=300', 'plain /dl URL never pinned past the 5-min tag check');
 // new release published; once the 5 min tag cache expires (simulated by dropping it) the new exe is served
 latest = 'desktop-v1.0.1';
 cache.m.delete('https://tradezoro.com/dl/__latest-tag');

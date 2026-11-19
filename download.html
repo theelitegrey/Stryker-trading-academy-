@@ -85,56 +85,8 @@
 <link rel="apple-touch-icon" sizes="180x180" href="assets/images/tradezoro-apple-touch-icon-494.png?v=1145">
 <link rel="icon" type="image/png" sizes="192x192" href="assets/images/tradezoro-icon-192-494.png?v=1145">
 <script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
-<style>
-/* /download: TradeZoro for Windows. Tokens only (style.css); type scale + 4-pt spacing from docs/DESIGN-STANDARD.md. */
-.dl{ max-width:880px; margin:0 auto; padding:48px 32px 80px; }
-.dl-hero{ display:grid; grid-template-columns:1fr auto; gap:32px; align-items:center; padding:0 0 40px; border-bottom:1px solid var(--line-soft); }
-.dl-eyebrow{ font-size:13px; line-height:18px; font-weight:500; color:var(--gold); margin:0 0 8px; }
-.dl h1{ font-size:28px; line-height:34px; font-weight:700; color:var(--ink-0); margin:0 0 12px; letter-spacing:-.01em; }
-.dl-lead{ font-size:15px; line-height:22px; color:var(--ink-2); margin:0 0 24px; max-width:520px; }
-.dl-actions{ display:flex; flex-wrap:wrap; align-items:center; gap:12px 20px; }
-.dl-btn{ display:inline-flex; align-items:center; gap:8px; height:48px; padding:0 24px; border-radius:999px; background:var(--gold); color:#04140d; font-size:15px; font-weight:600; text-decoration:none; transition:background .2s cubic-bezier(.2,0,0,1); }
-.dl-btn:hover{ background:var(--gold-bright); }
-.dl-btn svg{ width:20px; height:20px; }
-.dl-link{ font-size:14px; line-height:20px; color:var(--ink-1); text-decoration:underline; text-underline-offset:3px; text-decoration-color:var(--line); min-height:44px; display:inline-flex; align-items:center; }
-.dl-link:hover{ color:var(--gold); text-decoration-color:currentColor; }
-.dl-meta-link{ color:var(--ink-1); text-decoration:underline; text-underline-offset:3px; }
-.dl-meta-link:hover{ color:var(--gold); }
-.dl-btn:focus-visible, .dl-link:focus-visible, .dl-meta-link:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
-.dl-meta{ font-size:12px; line-height:16px; color:var(--ink-2); margin:12px 0 0; }
-.dl-icon{ width:112px; height:112px; border-radius:24px; border:1px solid var(--line); background:var(--bg-0); display:grid; place-items:center; }
-.dl-icon img{ width:80px; height:80px; }
-.dl h2{ font-size:17px; line-height:22px; font-weight:600; color:var(--ink-0); margin:40px 0 16px; }
-.dl-rows{ list-style:none; margin:0; padding:0; border:1px solid var(--line); border-radius:16px; background:var(--bg-2); overflow:hidden; }
-.dl-rows li{ display:flex; gap:16px; align-items:flex-start; padding:16px; min-height:52px; }
-.dl-rows li + li{ border-top:1px solid var(--line-soft); }
-.dl-rows svg{ flex:0 0 24px; width:24px; height:24px; color:var(--gold); margin-top:2px; }
-.dl-rows b{ display:block; font-size:15px; line-height:22px; font-weight:600; color:var(--ink-0); }
-.dl-rows span{ display:block; font-size:14px; line-height:20px; color:var(--ink-2); }
-.dl-cards{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-.dl-card{ border:1px solid var(--line); border-radius:16px; background:var(--bg-2); padding:16px; }
-.dl-card h3{ font-size:15px; line-height:22px; font-weight:600; color:var(--ink-0); margin:0 0 4px; display:flex; align-items:center; gap:8px; }
-.dl-card p{ font-size:14px; line-height:20px; color:var(--ink-2); margin:0; }
-.dl-card .dl-btn-sm{ margin:12px 0; height:44px; padding:0 20px; font-size:14px; }
-.dl-card .dl-steps{ font-size:13px; line-height:20px; }
-.dl-beta{ color:var(--gold); border-color:var(--gold-dim); font-weight:600; vertical-align:middle; }
-h1 .dl-beta{ font-size:12px; position:relative; top:-4px; margin-left:4px; }
-html.dl-is-android #dl-android-card{ border-color:var(--gold); order:-1; box-shadow:0 0 0 1px var(--gold) inset; }
-.dl-pill{ font-size:11px; line-height:13px; font-weight:500; padding:4px 8px; border-radius:999px; border:1px solid var(--line); color:var(--ink-2); }
-.dl-steps{ margin:0; padding-left:20px; font-size:14px; line-height:20px; color:var(--ink-2); }
-.dl-steps li + li{ margin-top:8px; }
-.dl-steps strong{ color:var(--ink-0); font-weight:600; }
-.dl-foot{ font-size:12px; line-height:16px; color:var(--ink-2); margin:32px 0 0; }
-@media (max-width:767px){
-  .dl{ padding:32px 16px 64px; }
-  .dl-hero{ grid-template-columns:1fr; gap:24px; padding:0 0 32px; }
-  .dl-icon{ order:-1; width:72px; height:72px; border-radius:16px; }
-  .dl-icon img{ width:52px; height:52px; }
-  .dl-btn{ width:100%; justify-content:center; }
-  .dl-cards{ grid-template-columns:1fr; }
-}
-@media (prefers-reduced-motion:reduce){ .dl-btn{ transition:none; } }
-</style>
+<link rel="preload" href="assets/fonts/plus-jakarta-sans-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/download-page.css?v=1145">
 </head>
 <body data-page-key="download">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -157,48 +109,149 @@ html.dl-is-android #dl-android-card{ border-color:var(--gold); order:-1; box-sha
     </div>
   </div>
 </nav><script src="/assets/dl-menu.js?v=1145" defer></script>
-<main id="main" tabindex="-1">
-<div class="dl">
-  <section class="dl-hero" aria-labelledby="dl-title">
-    <div>
-      <p class="dl-eyebrow">Desktop app</p>
-      <h1 id="dl-title">TradeZoro for Windows <span class="dl-pill dl-beta">Beta</span></h1>
-      <p class="dl-lead">Your TradeZoro desk in its own app. Charts get their own windows for a second monitor, stay on top when you want them to, and alerts arrive as Windows notifications.</p>
-      <div class="dl-actions">
-        <a class="dl-btn" id="dl-win" href="/dl/TradeZoro-Setup.exe" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12"/><path d="M7 11l5 5 5-5"/><path d="M5 20h14"/></svg>Download for Windows</a>
-        <a class="dl-link" id="dl-portable" href="/dl/TradeZoro-Portable.exe" rel="noopener">Portable version (no install)</a>
-      </div>
-      <p class="dl-meta">Windows 10 or 11, 64-bit · Free download · <a class="dl-meta-link" href="https://github.com/theelitegrey/Stryker-trading-academy-/releases?q=desktop-v&amp;expanded=true" rel="noopener">All versions and checksums</a></p>
+<main id="main" tabindex="-1" class="dp">
+<section class="dp-hero" aria-labelledby="dp-title">
+  <div class="dp-w">
+    <p class="dp-eyebrow">TradeZoro apps <em class="dl-beta">Beta</em></p>
+    <h1 id="dp-title"><span>Your charts.</span> <span>Everywhere you trade.</span></h1>
+    <p class="dp-sub">One account on your PC, your phone and the web. Your watchlists, layouts and paper account follow you.</p>
+    <div class="dp-btns">
+      <a class="dp-plat" id="dp-win" href="/dl/TradeZoro-Setup.exe" rel="noopener"><svg class="dl-logo dl-win" viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" focusable="false"><path style="fill:#0078D4;stroke:none" d="M2.5 2.5h9.1v9.1H2.5zM12.4 2.5h9.1v9.1h-9.1zM2.5 12.4h9.1v9.1H2.5zM12.4 12.4h9.1v9.1h-9.1z"/></svg><span class="dp-plat-t"><b>Download for Windows <em class="dl-beta">Beta</em></b><small>Windows 10/11 · 64-bit<span class="dp-rec"> · For this device</span></small></span></a>
+      <a class="dp-plat" id="dp-and" href="/downloads/tradezoro-android-beta.apk" download><svg class="dl-logo dl-and" viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" focusable="false"><path style="fill:none;stroke:#3DDC84;stroke-width:1.6;stroke-linecap:round" d="M7.6 8.2 5.6 4.9M16.4 8.2 18.4 4.9"/><path style="fill:#3DDC84;stroke:none" d="M2.6 19.5a9.4 9.4 0 0 1 18.8 0z"/><circle style="fill:#0b0d10;stroke:none" cx="8.1" cy="15" r="1.2"/><circle style="fill:#0b0d10;stroke:none" cx="15.9" cy="15" r="1.2"/></svg><span class="dp-plat-t"><b>Download for Android <em class="dl-beta">Beta</em></b><small>Android 8+ · ~19 MB<span class="dp-rec"> · For this device</span></small></span></a>
     </div>
-    <div class="dl-icon"><img src="assets/images/tradezoro-icon-192-494.png?v=1145" width="80" height="80" alt="TradeZoro app icon"></div>
-  </section>
-
-  <h2>Why use the app</h2>
-  <ul class="dl-rows">
-      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="11" height="9" rx="1.5"/><rect x="10" y="11" width="11" height="9" rx="1.5"/></svg><div><b>Pop-out chart windows</b><span>Open a chart or a saved layout in its own window and drag it to a second monitor. Each window remembers its size and place.</span></div></li>
-      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><rect x="4" y="15" width="16" height="6" rx="1.5"/></svg><div><b>Always on top</b><span>Keep one chart above your other apps. Turn it on per window with Ctrl+Shift+T.</span></div></li>
-      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><div><b>Desktop alerts</b><span>Your TradeZoro alerts show as Windows notifications, also when the app sits in the tray.</span></div></li>
-      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/></svg><div><b>Always the current site</b><span>The app opens tradezoro.com, so every site update is in the app the same day. The app itself updates when you restart it, and never during market hours without asking.</span></div></li>
-      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg><div><b>Keyboard shortcuts</b><span>Ctrl+Shift+N new chart window, Ctrl+R reload, F11 full screen.</span></div></li>
-  </ul>
-
-  <h2>Other devices</h2>
-  <div class="dl-cards">
-    <div class="dl-card" id="dl-android-card"><h3>Android <span class="dl-pill dl-beta">Beta</span></h3><p>Charts, paper trading and alerts on your phone.</p>
-      <a class="dl-btn dl-btn-sm" id="dl-android" href="/downloads/tradezoro-android-beta.apk" download><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12"/><path d="M7 11l5 5 5-5"/><path d="M5 20h14"/></svg>Download for Android (Beta)</a>
-      <ol class="dl-steps"><li>Open the file.</li><li>Allow install from this source.</li><li>Open TradeZoro.</li></ol></div>
-    <div class="dl-card"><h3>iPhone, iPad and Mac</h3><p>Use tradezoro.com in Safari or Chrome. On iPhone, Share then Add to Home Screen.</p></div>
+    <p class="dp-alt"><a href="/charts">Open in your browser →</a><span>iPhone app: coming later</span></p>
   </div>
+  <div class="dp-stage" aria-label="TradeZoro on a Windows PC and an Android phone">
+    <div class="dp-desk"><div class="dp-desk-bar" aria-hidden="true"><i></i><i></i><i></i><b>TradeZoro for Windows</b></div><img src="assets/images/home/chart-d.webp?v=1145" width="1400" height="752" alt="ZoroCharts in the TradeZoro Windows app" fetchpriority="high" decoding="async"></div>
+    <div class="dp-phone dp-float" data-dp-px><img class="dp-d" src="assets/images/download/android-dark.webp?v=1145" width="585" height="1266" alt="The TradeZoro Android app showing a chart" decoding="async"><img class="dp-l" src="assets/images/download/android-light.webp?v=1145" width="585" height="1266" alt="" loading="lazy" decoding="async"></div>
+  </div>
+  <p class="dp-cap">Real screenshots of the apps.</p>
+</section>
 
-  <h2 id="smartscreen">Installing</h2>
-  <ol class="dl-steps">
-    <li>Open <strong>TradeZoro-Setup.exe</strong>. It installs for your Windows user only and opens TradeZoro.</li>
-    <li>The app is not code-signed yet, so Windows may show "Windows protected your PC". Click <strong>More info</strong>, then <strong>Run anyway</strong>. Your browser may also ask you to <strong>Keep</strong> the file.</li>
-    <li>Sign in with your TradeZoro account. Google sign-in works inside the app.</li>
-    <li>To remove it: Windows Settings, Apps, TradeZoro, Uninstall.</li>
-  </ol>
+<section class="dp-sec" aria-labelledby="dp-beyond">
+  <div class="dp-w">
+    <div class="dp-head dp-rv"><h2 id="dp-beyond">Go beyond the chart</h2><p>The tools you use on the web, in your pocket and on your desktop.</p></div>
+    <div class="dp-cards">
+      <article class="dp-card dp-rv">
+        <div><h3>Indicators</h3><p>Add the same indicators you use on the web. They run on the same engine.</p></div>
+        <div class="dp-ui" aria-hidden="true">
+          <div class="dp-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Search indicators</span></div>
+          <div data-dp-ind>
+            <div class="dp-row"><b>Volume Profile</b><i class="dp-add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 6v12M6 12h12"/></svg></i></div>
+            <div class="dp-row"><b>VWAP (session)</b><i class="dp-add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 6v12M6 12h12"/></svg></i></div>
+            <div class="dp-row"><b>Footprint</b><i class="dp-add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 6v12M6 12h12"/></svg></i></div>
+            <div class="dp-row"><b>Killzones (ICT sessions)</b><i class="dp-add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 6v12M6 12h12"/></svg></i></div>
+          </div>
+        </div>
+      </article>
+      <article class="dp-card dp-rv">
+        <div><h3>Price alerts</h3><p>Set an alert on any device. It arrives as a notification on your phone and your PC.</p></div>
+        <div class="dp-ui" aria-hidden="true">
+          <div class="dp-ui-h"><span>Alerts</span><span class="dp-sample">Sample</span></div>
+          <div data-dp-alerts>
+            <div class="dp-row"><i class="dp-bell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></i><b>BTCUSDT crosses 98,500</b><span class="dp-chip">Active</span></div>
+            <div class="dp-row"><i class="dp-bell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></i><b>NQ touches session VWAP</b><span class="dp-chip">Active</span></div>
+            <div class="dp-row"><i class="dp-bell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></i><b>ETHUSDT below 3,400</b><span class="dp-chip off">Paused</span></div>
+          </div>
+        </div>
+      </article>
+      <article class="dp-card dp-rv">
+        <div><h3>Paper trading</h3><p>Practise orders on live charts with a paper account. No real money, ever.</p></div>
+        <div class="dp-ui" aria-hidden="true">
+          <div class="dp-ui-h"><span>Order ticket</span><span class="dp-sample">Sample</span></div>
+          <div class="dp-tk-top"><b>BTCUSDT</b><span class="dp-px" data-dp-px-val>98,412.5</span></div>
+          <div class="dp-tk-q"><span>Quantity</span><span class="dp-step"><i>−</i><b>0.010</b><i>+</i></span></div>
+          <div class="dp-tk-b"><span class="dp-buy">BUY<small>Market</small></span><span class="dp-sell">SELL<small>Market</small></span></div>
+          <p class="dp-paper"><i></i>Paper account</p>
+        </div>
+      </article>
+      <article class="dp-card dp-rv">
+        <div><h3>Account sync</h3><p>Change it on your PC, it's on your phone in seconds. Same account, same watchlists, layouts and settings.</p></div>
+        <div class="dp-ui" aria-hidden="true">
+          <div class="dp-sync">
+            <div class="dp-dev"><p class="dp-dev-h"><svg class="dl-logo dl-win" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path style="fill:#0078D4;stroke:none" d="M2.5 2.5h9.1v9.1H2.5zM12.4 2.5h9.1v9.1h-9.1zM2.5 12.4h9.1v9.1H2.5zM12.4 12.4h9.1v9.1h-9.1z"/></svg> Windows</p><ul data-dp-pc><li><b>NQ</b><span>Futures</span></li><li><b>BTCUSDT</b><span>Crypto</span></li></ul></div>
+            <span class="dp-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+            <div class="dp-dev"><p class="dp-dev-h"><svg class="dl-logo dl-and" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path style="fill:none;stroke:#3DDC84;stroke-width:1.6;stroke-linecap:round" d="M7.6 8.2 5.6 4.9M16.4 8.2 18.4 4.9"/><path style="fill:#3DDC84;stroke:none" d="M2.6 19.5a9.4 9.4 0 0 1 18.8 0z"/><circle style="fill:#0b0d10;stroke:none" cx="8.1" cy="15" r="1.2"/><circle style="fill:#0b0d10;stroke:none" cx="15.9" cy="15" r="1.2"/></svg> Android</p><ul data-dp-ph><li><b>NQ</b><span>Futures</span></li><li><b>BTCUSDT</b><span>Crypto</span></li></ul></div>
+          </div>
+          <p class="dp-synced" data-dp-synced><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg> Watchlist synced</p>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
 
-  <p class="dl-foot">The app shows the same TradeZoro you use in the browser, with the same account and plan. Education only. Not financial advice.</p>
+<section class="dp-sec" aria-labelledby="dp-cmp-h">
+  <div class="dp-w">
+    <div class="dp-head dp-rv"><h2 id="dp-cmp-h">Pick your platform</h2><p>Same account on all three. Each app adds what its device does best.</p></div>
+    <div class="dp-cmp-wrap dp-rv">
+      <table class="dp-cmp">
+        <colgroup><col><col class="c"><col class="c"><col class="c"></colgroup>
+        <thead><tr><th scope="col"><span class="sr-only">Feature</span></th><th scope="col"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></svg> Web</span></th><th scope="col"><span><svg class="dl-logo dl-win" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path style="fill:#0078D4;stroke:none" d="M2.5 2.5h9.1v9.1H2.5zM12.4 2.5h9.1v9.1h-9.1zM2.5 12.4h9.1v9.1H2.5zM12.4 12.4h9.1v9.1h-9.1z"/></svg> Windows</span></th><th scope="col"><span><svg class="dl-logo dl-and" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path style="fill:none;stroke:#3DDC84;stroke-width:1.6;stroke-linecap:round" d="M7.6 8.2 5.6 4.9M16.4 8.2 18.4 4.9"/><path style="fill:#3DDC84;stroke:none" d="M2.6 19.5a9.4 9.4 0 0 1 18.8 0z"/><circle style="fill:#0b0d10;stroke:none" cx="8.1" cy="15" r="1.2"/><circle style="fill:#0b0d10;stroke:none" cx="15.9" cy="15" r="1.2"/></svg> Android</span></th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Charts with indicators</th><td><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-label="Yes" role="img" focusable="false" class="dp-yes"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></td><td><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-label="Yes" role="img" focusable="false" class="dp-yes"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></td><td><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-label="Yes" role="img" focusable="false" class="dp-yes"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></td></tr>
+          <tr><th scope="row">Paper trading</th><td><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-label="Yes" role="img" focusable="false" class="dp-yes"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></td><td><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-label="Yes" role="img" focusable="false" class="dp-yes"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></td><td><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-label="Yes" role="img" focusable="false" class="dp-yes"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></td></tr>
+          <tr><th scope="row">Price alerts with notifications</th><td><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-label="Yes" role="img" focusable="false" class="dp-yes"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></td><td><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-label="Yes" role="img" focusable="false" class="dp-yes"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></td><td><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-label="Yes" role="img" focusable="false" class="dp-yes"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></td></tr>
+          <tr><th scope="row">Watchlists, layouts and settings synced</th><td><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-label="Yes" role="img" focusable="false" class="dp-yes"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></td><td><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-label="Yes" role="img" focusable="false" class="dp-yes"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></td><td><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-label="Yes" role="img" focusable="false" class="dp-yes"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></td></tr>
+          <tr><th scope="row">Omega levels, journal and lessons</th><td><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-label="Yes" role="img" focusable="false" class="dp-yes"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></td><td><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-label="Yes" role="img" focusable="false" class="dp-yes"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></td><td><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-label="Yes" role="img" focusable="false" class="dp-yes"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></td></tr>
+          <tr><th scope="row">Pop-out chart windows for a second monitor</th><td><span class="dp-no" role="img" aria-label="No"></span></td><td><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-label="Yes" role="img" focusable="false" class="dp-yes"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></td><td><span class="dp-no" role="img" aria-label="No"></span></td></tr>
+          <tr><th scope="row">Always on top</th><td><span class="dp-no" role="img" aria-label="No"></span></td><td><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-label="Yes" role="img" focusable="false" class="dp-yes"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></td><td><span class="dp-no" role="img" aria-label="No"></span></td></tr>
+          <tr><th scope="row">Nothing to install</th><td><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-label="Yes" role="img" focusable="false" class="dp-yes"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></td><td><span class="dp-no" role="img" aria-label="No"></span></td><td><span class="dp-no" role="img" aria-label="No"></span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="dp-sec" id="install" aria-labelledby="dp-inst-h">
+  <div class="dp-w dp-install">
+    <div class="dp-head dp-rv"><h2 id="dp-inst-h">Install in three steps</h2><p>Both apps are in beta, so your device may ask you to confirm once.</p></div>
+    <div class="dp-seg" role="tablist" aria-label="Choose your device">
+      <button type="button" role="tab" id="dp-tab-win" aria-controls="dp-pane-win" aria-selected="true"><svg class="dl-logo dl-win" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path style="fill:#0078D4;stroke:none" d="M2.5 2.5h9.1v9.1H2.5zM12.4 2.5h9.1v9.1h-9.1zM2.5 12.4h9.1v9.1H2.5zM12.4 12.4h9.1v9.1h-9.1z"/></svg> Windows</button>
+      <button type="button" role="tab" id="dp-tab-and" aria-controls="dp-pane-and" aria-selected="false" tabindex="-1"><svg class="dl-logo dl-and" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path style="fill:none;stroke:#3DDC84;stroke-width:1.6;stroke-linecap:round" d="M7.6 8.2 5.6 4.9M16.4 8.2 18.4 4.9"/><path style="fill:#3DDC84;stroke:none" d="M2.6 19.5a9.4 9.4 0 0 1 18.8 0z"/><circle style="fill:#0b0d10;stroke:none" cx="8.1" cy="15" r="1.2"/><circle style="fill:#0b0d10;stroke:none" cx="15.9" cy="15" r="1.2"/></svg> Android</button>
+    </div>
+    <div role="tabpanel" id="dp-pane-win" aria-labelledby="dp-tab-win">
+      <ol class="dp-steps" id="smartscreen">
+        <li><span>Download and open <strong>TradeZoro-Setup.exe</strong>. It installs for your Windows user only.</span></li>
+        <li><span>The beta isn't code-signed yet, so Windows may show "Windows protected your PC". Click <strong>More info</strong>, then <strong>Run anyway</strong>.</span></li>
+        <li><span>Sign in with your TradeZoro account. Your charts and settings are already there.</span></li>
+      </ol>
+      <p class="dp-note">No install? Try the <a href="/dl/TradeZoro-Portable.exe" rel="noopener">portable version</a>. <a href="https://github.com/theelitegrey/Stryker-trading-academy-/releases?q=desktop-v&amp;expanded=true" rel="noopener">All versions and checksums</a>.</p>
+    </div>
+    <div role="tabpanel" id="dp-pane-and" aria-labelledby="dp-tab-and" hidden>
+      <ol class="dp-steps">
+        <li><span>Tap <strong>Download for Android</strong> and open the file when it finishes.</span></li>
+        <li><span>If Android asks, <strong>allow installs from this source</strong> (your browser), then tap <strong>Install</strong>.</span></li>
+        <li><span>Open TradeZoro and sign in. Turn on notifications to get your alerts.</span></li>
+      </ol>
+      <p class="dp-note">The Play Store version is coming later.</p>
+    </div>
+  </div>
+</section>
+
+<section class="dp-sec" aria-labelledby="dp-faq-h">
+  <div class="dp-w">
+    <div class="dp-head dp-rv"><h2 id="dp-faq-h">Questions</h2></div>
+    <div class="dp-faq">
+      <details><summary>Is it free?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 6v12M6 12h12"/></svg></summary><p>Yes, downloading the apps is free. You sign in with your TradeZoro account, and the plan you have on the web is the same plan in every app.</p></details>
+      <details><summary>Is my data synced?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 6v12M6 12h12"/></svg></summary><p>Yes. Your watchlists, chart layouts, settings and paper account live on your account, so a change on one device shows up on the others.</p></details>
+      <details><summary>Which brokers can I trade with?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 6v12M6 12h12"/></svg></summary><p>Paper trading for everyone: practise orders on live charts with a paper account. No real money is used.</p></details>
+      <details><summary>Is it safe to install?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 6v12M6 12h12"/></svg></summary><p>The files come straight from tradezoro.com. The Windows beta isn't code-signed yet, so Windows may ask you to confirm with More info, then Run anyway. The Android beta comes from outside the Play Store, so Android asks you to allow this source once.</p></details>
+      <details><summary>Is there an iPhone app?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 6v12M6 12h12"/></svg></summary><p>Not yet, it is coming later. On iPhone and iPad, open tradezoro.com in Safari, then Share and Add to Home Screen.</p></details>
+    </div>
+  </div>
+</section>
+
+<div class="dp-w">
+  <section class="dp-final dp-rv" aria-labelledby="dp-final-h">
+    <h2 id="dp-final-h">Take your desk with you</h2>
+    <p>Download the app for your device, or open TradeZoro in your browser.</p>
+    <div class="dp-btns">
+      <a class="dp-plat" href="/dl/TradeZoro-Setup.exe" rel="noopener"><svg class="dl-logo dl-win" viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" focusable="false"><path style="fill:#0078D4;stroke:none" d="M2.5 2.5h9.1v9.1H2.5zM12.4 2.5h9.1v9.1h-9.1zM2.5 12.4h9.1v9.1H2.5zM12.4 12.4h9.1v9.1h-9.1z"/></svg><span class="dp-plat-t"><b>Download for Windows <em class="dl-beta">Beta</em></b><small>Windows 10/11 · 64-bit</small></span></a>
+      <a class="dp-plat" href="/downloads/tradezoro-android-beta.apk" download><svg class="dl-logo dl-and" viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" focusable="false"><path style="fill:none;stroke:#3DDC84;stroke-width:1.6;stroke-linecap:round" d="M7.6 8.2 5.6 4.9M16.4 8.2 18.4 4.9"/><path style="fill:#3DDC84;stroke:none" d="M2.6 19.5a9.4 9.4 0 0 1 18.8 0z"/><circle style="fill:#0b0d10;stroke:none" cx="8.1" cy="15" r="1.2"/><circle style="fill:#0b0d10;stroke:none" cx="15.9" cy="15" r="1.2"/></svg><span class="dp-plat-t"><b>Download for Android <em class="dl-beta">Beta</em></b><small>Android 8+ · ~19 MB</small></span></a>
+    </div>
+    <p class="dp-alt"><a href="/charts">Open in your browser →</a></p>
+    <p class="dp-edu">Education only. Not financial advice.</p>
+  </section>
 </div>
 </main>
 <footer>
@@ -266,5 +319,6 @@ html.dl-is-android #dl-android-card{ border-color:var(--gold); order:-1; box-sha
 <script src="assets/branding.js?v=1145"></script>
 <script src="assets/seo.js?v=1145"></script>
 <script src="assets/theme.js?v=1145"></script>
+<script src="assets/download-page.js?v=1145" defer></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 // Live overnight levels + HOD/LOD maths of the GEX Levels indicator. Pure node:  node tools/tests/chart-gex-live.test.mjs
 import assert from 'node:assert/strict';
-import { runningHiLo, liveOvernight, dayHiLo, buildLevels } from '../../assets/chart-gex-levels.js';
+import { runningHiLo, liveOvernight, dayHiLo, buildLevels, SCHEMA } from '../../assets/chart-gex-levels.js';
 let n = 0;
 const ok = (c, m) => { assert.ok(c, m); n++; console.log('PASS', m); };
 // bar at New York wall time (EST = UTC-5 in November, EDT = UTC-4 in July)
@@ -44,4 +44,8 @@ ok(/onh:ONH \(live\):112/.test(ids({ liveOvernight: true })) && /onl:ONL \(live\
 ok(/onh:ONH:50/.test(buildLevels(data, src, { liveOvernight: true }, 0, { run: { on: null, day: null } }).lines.map((l) => l.id + ':' + l.label + ':' + l.price).join(' ')), 'session closed (no live): back to fixed levels');
 ok(/hod:HOD:120/.test(ids({ showHod: true })) && !/lod/.test(ids({ showHod: true })) && /lod:LOD:99/.test(ids({ showLod: true })), 'HOD / LOD toggles are separate');
 ok(!/hod|live/.test(buildLevels(data, { api: 'SPX' }, { liveOvernight: true, showHod: true }, 0, { run }).lines.map((l) => l.id + l.label).join(' ')), 'non-futures source: unchanged');
+// settings: both options exist and are off by default (roadmap onh-onl-live)
+const sk = (k) => SCHEMA.find((x) => x.key === k);
+ok(sk('liveOvernight').defval === false && /while forming/.test(sk('liveOvernight').title) && sk('showHod').defval === false && sk('showLod').defval === false, 'settings: Show ONH / ONL while forming + HOD / LOD, all off by default');
+ok(buildLevels(data, src, { liveOvernight: true }, 0, { run }).lines.filter((l) => /live/.test(l.label)).every((l) => l.dash === 'dashed'), 'forming ONH / ONL are dashed');
 console.log(n + ' passed');

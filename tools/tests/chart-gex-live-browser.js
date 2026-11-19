@@ -1,4 +1,4 @@
-// Browser test: GEX Levels "Live overnight levels" + HOD / LOD.
+// Browser test: GEX Levels "Show ONH / ONL while forming (live)" + HOD / LOD.
 //   node tools/tests/chart-dev-server.mjs 8031 &
 //   flock /tmp/stryker-chrome.lock env CHART_BASE=http://127.0.0.1:8031 node tools/tests/chart-gex-live-browser.js [shotsDir]
 // The indicator's bars are replaced by synthetic New York-time bars so the expected numbers are known.

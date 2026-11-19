@@ -127,7 +127,7 @@ export const BASIS_DAY = 'Updated through the day', BASIS_CLOSE = 'Daily close';
 const ALERT_LEVELS = ['Call wall', 'Put wall', 'Zero gamma', 'Pin Strike', 'Expected move high', 'Expected move low', 'Any Gamma Node'];
 const ALERT_LEVEL_ID = { 'Call wall': 'call_wall', 'Put wall': 'put_wall', 'Zero gamma': 'gamma_flip', 'Call Ceiling (call wall)': 'call_wall', 'Put Floor (put wall)': 'put_wall', 'Flip Line (zero gamma)': 'gamma_flip', 'Pin Strike': 'pin', 'Expected move high': 'em_high', 'Expected move low': 'em_low', 'Any Gamma Node': 'any_node' };
 let metricMod = null;   // assets/chart-metric-alerts.js, loaded only when an alert toggle is on
-const SCHEMA = [
+export const SCHEMA = [
   { key: 'levelsFrom', title: 'Levels from', type: 'string', defval: BASIS_DAY, options: [BASIS_DAY, BASIS_CLOSE],
     tooltip: 'Updated through the day: levels refresh every few minutes. Daily close: levels from the last regular-session close (16:00 ET), fixed for the whole next session.' },
   { key: 'dte', title: 'Expiry (Pro: all)', type: 'string', defval: '0', options: ['0', '1', '7', '30'],
@@ -166,8 +166,8 @@ const SCHEMA = [
   tog('showVal', 'pVAL', true, G2, 'val'), col('valColor', GEX_COLORS.va, G2, 'val'),
   tog('showOnh', 'ONH', true, G2, 'onh'), col('onhColor', GEX_COLORS.on, G2, 'onh'),
   tog('showOnl', 'ONL', true, G2, 'onl'), col('onlColor', GEX_COLORS.on, G2, 'onl'),
-  { key: 'liveOvernight', title: 'Live overnight levels', type: 'bool', defval: false, group: G7,
-    tooltip: 'Off: ONH / ONL appear when the overnight session has closed (as before). On: during the overnight session (4:00 pm to 9:30 am New York time) ONH and ONL follow the high and low of the session so far, labelled "ONH (live)" and "ONL (live)". When the session closes they become the normal fixed levels. Needs ONH / ONL switched on above.' },
+  { key: 'liveOvernight', title: 'Show ONH / ONL while forming (live)', type: 'bool', defval: false, group: G7,
+    tooltip: 'Off: ONH / ONL appear when the overnight session has closed (as before). On: during the overnight session (4:00 pm to 9:30 am New York time) ONH and ONL follow the high and low of the session so far, labelled "ONH (live)" and "ONL (live)" and drawn dashed. When the session closes they become the normal fixed levels. Needs ONH / ONL switched on above.' },
   tog('showHod', 'Current day high (HOD)', false, G7, 'hod'), col('hodColor', GEX_COLORS.hod, G7, 'hod'),
   tog('showLod', 'Current day low (LOD)', false, G7, 'lod'), col('lodColor', GEX_COLORS.lod, G7, 'lod'),
   tog('showIv80', 'IV ±80%', false, G3),

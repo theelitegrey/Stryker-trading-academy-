@@ -239,6 +239,13 @@ export function vwapSeries(bars, tick, reset, sessionOf) {
 // mode 'fixed': the size is set for a 1-minute bar and grows with the square root of the bar length (5 m x2.24, 15 m x3.87, 1 h x7.75,
 // 4 h x15.49), so a higher timeframe does not light up almost every cell (GK 14 Nov). tfMin 1 / missing = the size itself.
 // Returns Infinity when there is nothing to compare, so nothing is highlighted.
+// Heavy marker (setting fpHeavyMark): a dot inside the heavy cell xa..xb, y..y+h, at its outer edge (buys right, sells left).
+// null when the cell is too small to hold one.
+export function heavyDot(buy, xa, xb, y, h) {
+  if (!(h >= 4) || !(xb - xa >= 12)) return null;
+  const r = Math.max(1.5, Math.min(3, h / 3 - 0.5));
+  return { cx: buy ? xb - r - 2 : xa + r + 2, cy: y + h / 2, r };
+}
 export const heavyScale = (tfMin) => (tfMin > 1 ? Math.sqrt(tfMin) : 1);
 export function heavyLimit(cellVols, mode, x, fixed, tfMin, rowTicks) {
   // rowTicks = price levels grouped in one cell (zoom): the limit grows with it, so the same trade is heavy at every zoom

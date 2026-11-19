@@ -20,7 +20,7 @@
 // Education only. Not financial advice.
 
 import { flowDays, pinSessions } from './chart-frvp-data.js?v=1152';
-import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, stacked, unfinished, cvdCandles, profile, vwapSeries, heavyLimit, vivid } from './chart-footprint-data.js?v=1152';
+import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, stacked, unfinished, cvdCandles, profile, vwapSeries, heavyLimit, heavyDot, vivid } from './chart-footprint-data.js?v=1152';
 
 import { liveOfOn, liveFlow, onLiveFlow, overlayLive, setLiveThr, compareMinutes, liveDeliveries } from './chart-live-of.js?v=1152';
 import { bigPrints, bigThreshold, swingSegments, pocRevisits } from './chart-of-pro-data.js?v=1152';
@@ -300,7 +300,7 @@ function cryptoFlow(ctxLike, root, tf) {
 }
 
 // ---------------------------------------------------------------- footprint chart type
-const FP_DEF = { fpSrc: 'l2', fpStyle: 'classic', fpMode: 'bidask', fpBoxProfile: true, fpDbProfile: true, fpDbBadge: true, fpTable: false, fpScale: 'range', fpLadShow: 'volume', fpLadPoc: false, fpLadUnf: false, fpImb: 300, fpStack: 3, fpRows: 0, fpStats: true, fpPoc: true, fpUnfinished: true, fpBuyColor: '#03c988', fpSellColor: '#f23645', fpTextSize: 'normal', fpTablePos: 'br', fpStatsPos: 'bl', fpAutoText: false, fpAutoMin: 8, fpAutoMax: 14, fpTblVol: true, fpTblDelta: true, fpTblDpct: true, fpTblBuy: true, fpTblSell: true, fpTblTrd: true, fpHeavy: 'off', fpHeavyX: 3, fpHeavyFixed: 100, fpHeavyLevel: 'normal', fpHeavyBuyColor: '#38bdf8', fpHeavySellColor: '#e879f9' };
+const FP_DEF = { fpSrc: 'l2', fpStyle: 'classic', fpMode: 'bidask', fpBoxProfile: true, fpDbProfile: true, fpDbBadge: true, fpTable: false, fpScale: 'range', fpLadShow: 'volume', fpLadPoc: false, fpLadUnf: false, fpImb: 300, fpStack: 3, fpRows: 0, fpStats: true, fpPoc: true, fpUnfinished: true, fpBuyColor: '#03c988', fpSellColor: '#f23645', fpTextSize: 'normal', fpTablePos: 'br', fpStatsPos: 'bl', fpAutoText: false, fpAutoMin: 8, fpAutoMax: 14, fpTblVol: true, fpTblDelta: true, fpTblDpct: true, fpTblBuy: true, fpTblSell: true, fpTblTrd: true, fpHeavy: 'off', fpHeavyX: 3, fpHeavyFixed: 100, fpHeavyLevel: 'normal', fpHeavyBuyColor: '#38bdf8', fpHeavySellColor: '#e879f9', fpHeavyMark: false };
 const TBL_KEY = { vol: 'Vol', delta: 'Delta', dpct: 'Dpct', buy: 'Buy', sell: 'Sell', trd: 'Trd' };
 // Auto text size: the font for a row that traded `vol` when the busiest visible row traded `vmax` (square root so mid rows stay readable)
 export function autoFont(cfg, vol, vmax) {
@@ -320,7 +320,7 @@ function pal(cfg, day) {
 const POS_OPTS = [['bl', 'Bottom left'], ['br', 'Bottom right'], ['tl', 'Top left'], ['tr', 'Top right']];
 const STYLES = ['classic', 'delta', 'volume', 'ladder', 'boxes', 'dbars'];
 const fpSettings = new Map();      // chart engine -> settings
-function fpConfig(v) {
+export function fpConfig(v) {
   v = v || {};
   // Style (Owner 10 Nov) is the one look switch; charts saved before it only have fpMode, which maps straight in.
   const style = STYLES.includes(v.fpStyle) ? v.fpStyle : ['delta', 'volume', 'ladder'].includes(v.fpMode) ? v.fpMode : 'classic';
@@ -340,7 +340,7 @@ function fpConfig(v) {
     sellC: HEX6.test(v.fpSellColor) && v.fpSellColor.toLowerCase() !== FP_DEF.fpSellColor ? v.fpSellColor : null,
     // Highlight heavy activity: off by default, so a saved chart looks the same.
     heavy: v.fpHeavy === 'avg' || v.fpHeavy === 'fixed' ? v.fpHeavy : null, heavyX: clamp(num(v.fpHeavyX, 3), 1.5, 20), heavyFixed: Math.max(1, num(v.fpHeavyFixed, 100)),
-    heavyK: HEAVY_K[v.fpHeavyLevel] || HEAVY_K.normal,
+    heavyK: HEAVY_K[v.fpHeavyLevel] || HEAVY_K.normal, heavyMark: v.fpHeavyMark === true,
     // Own colours for heavy buying and heavy selling, apart from the regular buy / sell colours
     heavyBuyC: HEX6.test(v.fpHeavyBuyColor) ? v.fpHeavyBuyColor : FP_DEF.fpHeavyBuyColor, heavySellC: HEX6.test(v.fpHeavySellColor) ? v.fpHeavySellColor : FP_DEF.fpHeavySellColor,
     adj: TEXT_ADJ[v.fpTextSize] || 0,
@@ -781,6 +781,13 @@ function footprintLayer() {
       const HK = cfg.heavyK;
       const hot = (c) => vivid(c, HK.v);
       const hotBuy = cfg.heavyBuyC, hotSell = cfg.heavySellC;   // heavy buying / selling: their own colours
+      // optional marker on a heavy cell (setting "Heavy marker", default off): a dot at the cell's outer edge, buys right, sells left
+      const hMark = (buy, xa, xb, y, h) => {
+        const d = cfg.heavyMark ? heavyDot(buy, xa, xb, y, h) : null;
+        if (!d) return;
+        g.beginPath(); g.arc(d.cx, d.cy, d.r, 0, Math.PI * 2); g.fillStyle = buy ? hotBuy : hotSell; g.fill();
+        g.lineWidth = 1; g.strokeStyle = day ? 'rgba(15,23,42,0.9)' : 'rgba(255,255,255,0.95)'; g.stroke();
+      };
       if (!cells) {
         // zoomed out: candles coloured by the bar's delta (strength = |delta| / volume)
         for (let i = i0; i <= i1; i++) {
@@ -924,11 +931,14 @@ function footprintLayer() {
             g.fillRect(xl, y + 0.5, w / 2 - 0.5, Math.max(1, h - 1));
             g.fillStyle = alpha(hb ? hotBuy : UP, hb ? 0.3 + 0.4 * HK.a : base + span * (r.buy / max) * (bd || bare ? 1 : 0.3) + (imb.buy[k] ? 0.12 : 0));
             g.fillRect(x + 0.5, y + 0.5, w / 2 - 0.5, Math.max(1, h - 1));
+            if (hs) hMark(false, xl, x, y, h);
+            if (hb) hMark(true, x, xl + w, y, h);
           } else {
             const q = cfg.mode === 'delta' ? Math.abs(dl) : v;
             if (q >= heavy) g.fillStyle = alpha(cfg.mode === 'delta' ? (dl >= 0 ? hotBuy : hotSell) : hot(CYAN), 0.3 + 0.4 * HK.a);
             else g.fillStyle = cfg.mode === 'delta' ? alpha(dl >= 0 ? UP : SELL, 0.06 + 0.45 * Math.abs(dl) / max) : alpha(CYAN, 0.06 + 0.4 * v / max);
             g.fillRect(xl, y + 0.5, w, Math.max(1, h - 1));
+            if (q >= heavy) hMark(dl >= 0, xl, xl + w, y, h);
           }
           if (cfg.poc && k === pk) { g.strokeStyle = day ? '#a16207' : POCY; g.lineWidth = 1.3; g.strokeRect(xl + 0.5, y + 0.5, w - 1, Math.max(1, h - 1)); }
           if (!showText) continue;
@@ -1278,6 +1288,7 @@ export function installFootprint(Core, flowMod) {
         { kind: 'number', key: 'fpHeavyFixed', label: 'Heavy = at least this size per price level (1-minute bar; scales up on higher timeframes)', defval: 100, min: 1, max: 1000000, step: 1, when: { key: 'fpHeavy', anyOf: ['fixed'] } },
         { kind: 'color', key: 'fpHeavyBuyColor', label: 'Heavy buying colour', defval: FP_DEF.fpHeavyBuyColor, when: { key: 'fpHeavy', anyOf: ['avg', 'fixed'] } },
         { kind: 'color', key: 'fpHeavySellColor', label: 'Heavy selling colour', defval: FP_DEF.fpHeavySellColor, when: { key: 'fpHeavy', anyOf: ['avg', 'fixed'] } },
+        { kind: 'toggle', key: 'fpHeavyMark', label: 'Heavy marker (dot: buys right, sells left)', defval: false, when: { key: 'fpHeavy', anyOf: ['avg', 'fixed'] } },
         { kind: 'select', key: 'fpHeavyLevel', label: 'Heavy intensity', defval: 'normal', options: [['subtle', 'Subtle'], ['normal', 'Normal'], ['strong', 'Strong']], when: { key: 'fpHeavy', anyOf: ['avg', 'fixed'] } },
         { kind: 'number', key: 'fpImb', label: 'Imbalance ratio %', defval: FP_DEF.fpImb, min: 110, max: 2000, step: 10, when: { key: 'fpStyle', anyOf: ['classic', 'delta', 'volume', 'ladder', 'dbars'] } },
         { kind: 'number', key: 'fpStack', label: 'Stacked imbalance rows', defval: FP_DEF.fpStack, min: 2, max: 10, step: 1, when: { key: 'fpStyle', anyOf: ['classic', 'delta', 'volume', 'ladder', 'dbars'] } },

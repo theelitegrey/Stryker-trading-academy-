@@ -152,7 +152,7 @@
   }
   $$('canvas.tf-cv').forEach(function (cv) {
     var b = (cv.getAttribute('data-band') || '0.58,0.88').split(',').map(Number);
-    if (window.innerWidth < 700) b = [Math.max(b[0], 0.66), Math.max(b[1], 0.92)];
+    if (window.innerWidth < 700) b = [Math.max(b[0], 0.8), Math.max(b[1], 0.9)];
     sky(cv, b);
   });
   var hero = doc.querySelector('.tf-hero');

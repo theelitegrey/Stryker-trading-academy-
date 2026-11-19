@@ -151,8 +151,9 @@ const ok = (c, name, extra) => { if (c) { pass++; console.log('ok  ', name); } e
       const { ZsRunner, KILL_MS } = await import('/assets/zs/runner.js?v=914');
       KILL_MS.compile = 300;
       // a worker that never answers stands in for a hung engine
-      const blob = URL.createObjectURL(new Blob(['self.onmessage = () => { for (;;) {} }'], { type: 'text/javascript' }));
+      const blob = URL.createObjectURL(new Blob(["self.postMessage({ type: 'ready' }); self.onmessage = () => { for (;;) {} }"], { type: 'text/javascript' }));
       const r = new ZsRunner({ workerUrl: blob });
+      r.spawn(); for (let i = 0; i < 50 && !r.ready; i++) await new Promise((res) => setTimeout(res, 20));   // a cold worker gets START_MS extra
       const t0 = performance.now();
       const out = await r.compile('x');
       const gone = r.w === null;

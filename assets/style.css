@@ -7112,6 +7112,7 @@ body.charts-page .stkchart-panel{ position:relative; }
 .sed-prob-hd[data-s="ok"]{ color:var(--sed-mint); }
 .sed-prob-hd[data-s="err"]{ color:var(--sed-red); }
 .sed-prob-hd[data-s="idle"]{ display:none; }
+.sed-prob-hd .sed-retry{ flex:none; margin-left:auto; margin-right:-8px; height:28px; color:var(--sed-ink); border-color:var(--sed-line); }
 .sed-spin{ flex:none; width:12px; height:12px; border-radius:50%; border:2px solid var(--sed-line); border-top-color:var(--sed-mint); animation:sed-spin .8s linear infinite; }
 @keyframes sed-spin{ to{ transform:rotate(360deg); } }
 .sed .sed-prob-list{ max-height:112px; overflow-y:auto; overscroll-behavior:contain; padding:0 4px 4px; margin:0; border:0; border-radius:0; background:none; font:400 13px/18px var(--sed-mono); }

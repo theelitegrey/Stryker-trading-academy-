@@ -84,8 +84,11 @@
 # in it, so it gets its own ENFORCED policy (not report-only): it may load only the engine's
 # own files from this origin and may not connect anywhere. The worker also removes fetch,
 # importScripts, WebSocket and the rest at start-up; this header is the second lock.
+# worker-src must stay 'self': Firefox and Safari check the worker's own load against it, so
+# 'none' stops the engine from starting at all there (member bug, 19 Nov). The worker deletes
+# Worker/SharedWorker at start-up, so it still cannot start another worker.
 /assets/zs/worker.js
-  Content-Security-Policy: default-src 'none'; script-src 'self'; connect-src 'none'; worker-src 'none'; base-uri 'none'; form-action 'none'
+  Content-Security-Policy: default-src 'none'; script-src 'self'; connect-src 'none'; worker-src 'self'; base-uri 'none'; form-action 'none'
 
 /*.html
   Cache-Control: public, max-age=0, must-revalidate

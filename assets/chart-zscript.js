@@ -40,15 +40,23 @@ export function titleOf(src){
 // ---------- the engine (Zscript stream 1: assets/zs/runner.js + index.js, SPEC.md section 11) ----------
 // Loaded on first use. Every compile and run happens in a sandboxed module worker (ZsRunner), never on the page.
 let engineP = null;
+const RUNNER_URL = './zs/runner.js?v=1140';
 function engine(){
-  if (!engineP) engineP = import('./zs/runner.js?v=1140').catch((e) => { engineP = null; throw e; });
+  // one retry with a fresh URL: a failed module import stays failed for that exact URL until the page reloads
+  if (!engineP) engineP = import(RUNNER_URL).catch(() => import(RUNNER_URL + '&retry=' + Date.now())).catch((e) => { engineP = null; throw e; });
   return engineP;
 }
-const NO_ENGINE = { code: 'E000', line: 1, col: 1, severity: 'error', message: 'The Zscript engine did not load.', hint: 'Check your connection and reload the page.' };
+// E000 keeps the real reason in the hint ("Details: ..."), so a member's screenshot tells us what broke.
+const engineDiag = (e) => ({ code: 'E000', line: 1, col: 1, severity: 'error', message: 'The Zscript engine did not load.',
+  hint: 'Press Retry or reload the page. Details: ' + String((e && e.message) || e || 'unknown error').slice(0, 200) });
 let compiler = null;
 async function compileIn(source){
   try { const { ZsRunner } = await engine(); if (!compiler) compiler = new ZsRunner(); return await compiler.compile(source); }
-  catch (e) { return { ok: false, diagnostics: [NO_ENGINE] }; }
+  catch (e) {
+    console.warn('TradeZoro: Zscript engine did not load', e);
+    if (compiler) { compiler.dispose(); compiler = null; }   // the next try starts a fresh worker
+    return { ok: false, diagnostics: [engineDiag(e)] };
+  }
 }
 
 // ---------- built-in names for autocomplete / hover (the engine's catalog) ----------
@@ -553,7 +561,20 @@ export function mountZscript(ws, opts){
     if (compileErr) S.problems.head('err', errs.length === 1 ? '1 problem' : (errs.length || 1) + ' problems');
     else { const n = (r.meta && r.meta.plots) ? r.meta.plots.length : 0; S.problems.head('ok', 'Compiled OK · ' + n + (n === 1 ? ' plot' : ' plots') + (warns.length ? ' · ' + warns.length + (warns.length === 1 ? ' warning' : ' warnings') : '')); }
     S.problems.list(errs.concat(warns).slice(0, 20).map((d) => ({ text: diagText(d), line: d.line, col: d.col })), (l, c) => { if (ed) { S.setView('code'); ed.goto(l, c); ed.focus(); } });
+    retryRow(errs);
     renderStatus();
+  }
+  // "Retry" under an engine-load error (E000): fresh worker, compile the current text again
+  function retryRow(list){
+    if (!(list || []).some((d) => d && d.code === 'E000')) return;
+    const hd = S.errBox.previousElementSibling;   // the problems header (.sed-prob-hd): Retry sits at its right end
+    if (!hd || hd.querySelector('.sed-retry')) return;
+    hd.appendChild(el('button', { type: 'button', class: 'sed-tool sed-retry', text: 'Retry', onclick: async () => {
+      stopLint(); S.problems.head('busy', 'Checking…'); S.problems.list([]);
+      const src = ed ? ed.get() : '';
+      const r = await compileIn(src);
+      if (ed && ed.get() === src) { showCompile(r); ed.showDiagnostics(r.diagnostics || []); }
+    } }));
   }
   // compile-as-you-type: the shared sandboxed compiler (diagnostics with line:col and a "did you mean" hint)
   async function lint(src){ const r = await compileIn(src); if (ed && ed.get() === src) showCompile(r); return r.diagnostics || []; }
@@ -578,7 +599,7 @@ export function mountZscript(ws, opts){
     if (!d && !text) { S.problems.list([]); if (ed) ed.showDiagnostics([]); return; }
     S.problems.head(d ? 'err' : 'info', d ? '1 problem' : 'Note');
     S.problems.list([{ text: d ? diagText(d) : text, line: d && d.line, col: d && d.col }], (l, c) => { if (ed) { S.setView('code'); ed.goto(l, c); ed.focus(); } });
-    if (d) { compileErr = true; renderStatus(); }
+    if (d) { compileErr = true; retryRow([d]); renderStatus(); }
     if (d && ed) { ed.showDiagnostics([d]); ed.goto(d.line, d.col); }
   }
   async function load(name, source, id, k, h){

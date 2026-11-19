@@ -33,6 +33,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -137,6 +139,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var chartWeb: ChartWeb
     /** Link from a tapped push notification, consumed by TzRoot. */
     private val pushLink = MutableStateFlow<String?>(null)
+    private lateinit var updater: com.tradezoro.app.data.AppUpdater
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -145,11 +148,22 @@ class MainActivity : ComponentActivity() {
         val prefs = AppPrefs(applicationContext)
         chartWeb = ChartWeb(applicationContext)
         pushLink.value = intent?.getStringExtra(EXTRA_LINK)
+        updater = com.tradezoro.app.data.AppUpdater(applicationContext, BuildConfig.VERSION_CODE)
+        // Every 6 h while the app is on screen; start + resume checks are in onResume.
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) { while (true) { delay(com.tradezoro.app.data.AppUpdater.SIX_HOURS); updater.check() } }
+        }
         setContent {
             val mode by prefs.theme.collectAsState()
             val dark = when (mode) { ThemeMode.DARK -> true; ThemeMode.LIGHT -> false; ThemeMode.SYSTEM -> isSystemInDarkTheme() }
-            TradeZoroTheme(dark) { TzRoot(auth, chartWeb, pushLink, prefs, dark) }
+            TradeZoroTheme(dark) { TzRoot(auth, chartWeb, pushLink, prefs, dark, updater) }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // The first resume is the start check; later ones at most once an hour.
+        lifecycleScope.launch { updater.resumeInstall(); updater.check(com.tradezoro.app.data.AppUpdater.HOUR) }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -169,6 +183,7 @@ private const val OMEGA = "omega"
 fun TzRoot(
     auth: AuthRepository, chartWeb: ChartWeb, pushLink: MutableStateFlow<String?> = MutableStateFlow(null),
     prefs: AppPrefs = AppPrefs(LocalContext.current), dark: Boolean = isSystemInDarkTheme(),
+    updater: com.tradezoro.app.data.AppUpdater? = null,
 ) {
     val nav = rememberNavController()
     val entry by nav.currentBackStackEntryAsState()
@@ -383,8 +398,18 @@ fun TzRoot(
                 ))
             }
         }
-        TopNotesHost(snack)
+        Column {
+            updater?.let { u ->
+                val us by u.state.collectAsState()
+                com.tradezoro.app.ui.common.UpdateBanner(us, onUpdate = { scope.launch { u.update() } }, onClose = u::dismiss)
+            }
+            TopNotesHost(snack)
         }
+        }
+    }
+    updater?.let { u ->
+        val us by u.state.collectAsState()
+        com.tradezoro.app.ui.common.UpdateRequired(us, onUpdate = { scope.launch { u.update() } })
     }
 
     if (accountOpen) {

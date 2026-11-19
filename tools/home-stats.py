@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Homepage number strip (index.html .hv-stats) + the Traders for Traders line: keep every number true.
+"""Homepage number strip (index.html .hv-stats), its Traders for Traders line and the /traders-for-traders page: keep every number true.
 
     python3 tools/home-stats.py          rewrite the numbers in index.html from their sources
     python3 tools/home-stats.py --check  exit 1 if a number on the page is no longer true (tools/check.py runs this)
@@ -15,6 +15,8 @@ Sources
   chapters    assets/chapters-index.js CHAPTERS_SEED entries (42 core + Volume Profile + Prop Firm tracks). Exact.
   tools       product tiles in the index.html "Twelve tools" grid (.hv-tile). Exact.
   updates     assets/roadmap-log.json entries (the public roadmap's Shipped list). Floor to 10.
+  guides      indicator guide pages: indicators/*.html. Exact.
+  lessons     Zscript course lessons: zscript/course/zNN.html. Exact.
   symbols     NOT computed here: the universe lives on exchange and server lists fetched at run time. Hard-coded
               floor, re-checked by hand on 19 Nov 2026 (build 1149):
                 - chart symbol search pool on /charts (ws.feed.symbols(), deduped as assets/chart-search.js does,
@@ -31,7 +33,7 @@ import re
 import sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-PAGE = os.path.join(ROOT, 'index.html')
+PAGES = ['index.html', 'traders-for-traders.html']   # every page carrying data-stat numbers
 SYMBOLS_FLOOR = 10000   # see the docstring: counted by hand, not from a file in the repo
 
 
@@ -49,6 +51,8 @@ def actual():
         'tools': len(re.findall(r'class="hv-tile[ "]', html)),
         'updates': len(json.loads(rd('assets/roadmap-log.json'))),
         'symbols': SYMBOLS_FLOOR,
+        'guides': len([f for f in os.listdir(os.path.join(ROOT, 'indicators')) if f.endswith('.html')]),
+        'lessons': len([f for f in os.listdir(os.path.join(ROOT, 'zscript', 'course')) if re.match(r'z\d+\.html$', f)]),
     }
 
 
@@ -73,33 +77,36 @@ def parse(text):
 
 
 def main():
-    html = rd('index.html')
     real = actual()
+    bad = []
+    for name in PAGES:
+        path = os.path.join(ROOT, name)
+        html = rd(name)
+        if '--check' in sys.argv:
+            found = STAT_RE.findall(html)
+            if not found:
+                bad.append(f'{name}: no data-stat numbers found')
+            for _, _, key, text, _ in found:
+                if key not in real:
+                    bad.append(f'{name} data-stat="{key}": unknown key')
+                    continue
+                try:
+                    v, floor = parse(text)
+                except ValueError:
+                    bad.append(f'{name} data-stat="{key}": "{text}" is not a number')
+                    continue
+                if (floor and v > real[key]) or (not floor and v != real[key]):
+                    bad.append(f'{name} data-stat="{key}" says {text} but the source has {real[key]}: run python3 tools/home-stats.py')
+            continue
+        out = STAT_RE.sub(lambda m: m.group(1) + shown(m.group(3), real[m.group(3)]) + m.group(5) if m.group(3) in real else m.group(0), html)
+        if out != html:
+            with open(path, 'w', encoding='utf-8') as fh:
+                fh.write(out)
     if '--check' in sys.argv:
-        bad = []
-        found = STAT_RE.findall(html)
-        if not found:
-            bad.append('index.html: no data-stat numbers found')
-        for _, _, key, text, _ in found:
-            if key not in real:
-                bad.append(f'index.html data-stat="{key}": unknown key')
-                continue
-            try:
-                v, floor = parse(text)
-            except ValueError:
-                bad.append(f'index.html data-stat="{key}": "{text}" is not a number')
-                continue
-            if (floor and v > real[key]) or (not floor and v != real[key]):
-                bad.append(f'index.html data-stat="{key}" says {text} but the source has {real[key]}: run python3 tools/home-stats.py')
         for b in bad:
             print(b)
         sys.exit(1 if bad else 0)
-    out = STAT_RE.sub(lambda m: m.group(1) + shown(m.group(3), real[m.group(3)]) + m.group(5) if m.group(3) in real else m.group(0), html)
-    if out != html:
-        with open(PAGE, 'w', encoding='utf-8') as fh:
-            fh.write(out)
     print(' '.join(f'{k}={shown(k, v)} ({v})' for k, v in real.items()))
-
 
 if __name__ == '__main__':
     main()

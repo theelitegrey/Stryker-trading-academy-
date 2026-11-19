@@ -31,6 +31,7 @@
 // for crypto). Nothing here predicts anything. Education only. Not financial advice.
 
 import { pinSessions } from './chart-frvp-data.js?v=1155';
+import { MERGE_INPUTS, mergeGroups, mergeOpts } from './chart-vp-merge.js?v=1155';
 import { drawBookmap, BM_BG, smoothHist, smoothPick, smoothMsOf, SMOOTH_INPUT } from './chart-bookmap.js?v=1155';
 import { createHeatmapGL, heatmapGLOk } from './chart-heatmap-gl.js?v=1155';
 import { hfConfig, hfSize, hfCut, hfSchema } from './chart-heat-filter.js?v=1155';
@@ -229,6 +230,7 @@ const SVP_SCHEMA = [
   { key: 'valueAreaPct', title: 'Value area %', type: 'int', defval: SVP_DEF.valueAreaPct, min: 10, max: 100, step: 1 },
   { key: 'alwaysVisible', title: 'Always visible', type: 'bool', defval: false, tooltip: 'Keeps the nearest session on each side drawn at the chart edge when it scrolls off screen.' },
   { key: 'widthPct', title: 'Width % of the session', type: 'int', defval: SVP_DEF.widthPct, min: 10, max: 100, step: 1 },
+  ...MERGE_INPUTS,
   { key: 'showVa', title: 'Value area lines (VAH / VAL)', type: 'bool', defval: true },
   { key: 'showPoc', title: 'Point of control (POC)', type: 'bool', defval: true },
   { key: 'color', title: 'Profile colour', type: 'color', defval: SVP_DEF.color },
@@ -252,7 +254,7 @@ const svpConfig = (inputs, mk) => ({
   showDelta: inputs.showDelta === true, deltaPos: inputs.deltaPos === 'beside' ? 'beside' : 'inside',
   deltaUp: str(inputs.deltaUp, '#089981'), deltaDn: str(inputs.deltaDn, '#f23645'),
   deltaAlpha: clamp(num(inputs.deltaOpacity, 75), 10, 100) / 100, deltaFrac: clamp(num(inputs.deltaWidthPct, 25), 5, 100) / 100,
-  futures: !!mk.futures, tick: mk.tick || null, tf: mk.tf
+  futures: !!mk.futures, tick: mk.tick || null, tf: mk.tf, merge: mergeOpts(inputs)
 });
 
 // Delta per price row = ask (buy) volume minus bid (sell) volume from the footprint's own recorded trades (window.__stkOfFlowHook, set by
@@ -335,7 +337,7 @@ function groupSessions(bars, cfg, from) {
       step = niceStep((hi - lo) / cfg.rows);
     }
     const prof = volumeProfile(span, step, cfg.va);
-    if (prof) out.push({ key: cur.key, i0: cur.i0, i1: cur.i1, t0: span[0].time, t1: span[span.length - 1].time, prof });
+    if (prof) out.push({ key: cur.key, i0: cur.i0, i1: cur.i1, t0: span[0].time, t1: span[span.length - 1].time, prof, span });
     cur = null;
   };
   for (let i = from; i < bars.length; i++) {
@@ -347,6 +349,26 @@ function groupSessions(bars, cfg, from) {
   }
   flush();
   // trailing excluded bars do not belong to the session
+  return out;
+}
+
+// Merge nearby profiles (off by default): neighbouring sessions drawn as one profile with its own POC / VAH / VAL.
+// Cached on the session list it was built from; a merged entry's profile is rebuilt from its sessions' own bars.
+export function mergeSvp(sessions, cfg, cache) {
+  const m = cfg.merge;
+  if (!m || m.mode === 'off' || sessions.length < 2) return sessions;
+  const sig = m.mode + '|' + m.pct + '|' + m.count;
+  if (cache.mSrc === sessions && cache.mSig === sig) return cache.mOut;
+  const groups = mergeGroups(sessions.length, m, (k) => [sessions[k].prof.val, sessions[k].prof.vah + sessions[k].prof.step]);
+  const out = groups.map((gr) => {
+    if (gr.length === 1) return sessions[gr[0]];
+    const ss = gr.map((k) => sessions[k]), span = [].concat(...ss.map((x) => x.span || []));
+    let step = ss[0].prof.step;
+    if (!(cfg.futures && cfg.tick)) { let hi = -Infinity, lo = Infinity; span.forEach((b) => { if (b.high > hi) hi = b.high; if (b.low < lo) lo = b.low; }); step = niceStep((hi - lo) / cfg.rows); }
+    const prof = volumeProfile(span, step, cfg.va);
+    return prof ? { key: ss.map((x) => x.key).join('+'), i0: ss[0].i0, i1: ss[ss.length - 1].i1, t0: ss[0].t0, t1: ss[ss.length - 1].t1, prof, span, merged: gr.length } : ss[ss.length - 1];
+  });
+  cache.mSrc = sessions; cache.mSig = sig; cache.mOut = out;
   return out;
 }
 
@@ -389,7 +411,7 @@ function svpLayer() {
       if (!g) return;
       const cfg = a.data;
       if (!cfg || cfg.off || !a.bars.length) return;
-      const sessions = computeSessions(a.bars, cfg, cache);
+      const sessions = mergeSvp(computeSessions(a.bars, cfg, cache), cfg, cache);
       const co = a.coords, W = co.width;
       const half = co.pxPerBar() / 2;
       const top = a.bounds.top, bot = a.bounds.top + a.bounds.height;

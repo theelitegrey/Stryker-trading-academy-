@@ -18,7 +18,7 @@ const FULL = process.env.FULL === '1';
   let errors = 0;
   for (const theme of THEMES) for (const w of WIDTHS) {
     const ctx = await b.newContext({ viewport: { width: w, height: w < 600 ? 844 : 900 }, deviceScaleFactor: 1 });
-    await ctx.addInitScript((t) => { try { localStorage.setItem('stryker_theme', t === 'light' ? 'day' : 'night'); localStorage.setItem('stryker_cookie_ok', '1'); } catch (e) {} }, theme);
+    await ctx.addInitScript((t) => { try { localStorage.setItem('stryker_theme', t === 'light' ? 'day' : 'night'); localStorage.setItem('tz_consent', '{"v":1,"essential":true}'); } catch (e) {} }, theme);
     await ctx.addInitScript(stub);
     if (ANON) await ctx.addInitScript(() => { const t = setInterval(() => { if (window.__stubAuth) { window.__stubAuth.currentUser = null; window.__stubAuth.onAuthStateChanged = (cb) => { setTimeout(() => cb(null), 10); return () => {}; }; clearInterval(t); } }, 0); });
     // Firebase CDN is not needed for layout; stub it so the page renders offline.

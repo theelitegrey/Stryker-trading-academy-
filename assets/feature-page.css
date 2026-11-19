@@ -270,3 +270,9 @@ html.fpg-anim .fpg-rv.is-in{ opacity:1; transform:none; }
   color:var(--gold); background:color-mix(in srgb, var(--gold) 14%, var(--surface-2)); border:1px solid color-mix(in srgb, var(--gold) 28%, transparent); }
 .fpg .fpg-svgic .ci{ width:60%; height:60%; color:inherit; }
 .fpg-relc:hover .fpg-svgic .ci{ transform:none; color:var(--gold); }
+
+/* charts etc (FEATB, 19 Nov 2026): a 6-tile bento ends on a full-width tile so the last row has no gap */
+@media (min-width:1000px){ .fpg-bento > .fpg-tile:nth-child(6):last-child{ grid-column:1 / -1; } }
+/* journal + backtesting tiles show P&L figures, so each carries a "Sample data" tag on the image */
+.fpg-tile-fig:has(.fpg-tile-tag){ position:relative; }
+.fpg-tile-tag{ position:absolute; top:8px; right:8px; z-index:1; background:color-mix(in srgb, #0b0b0d 70%, var(--gold) 18%); }

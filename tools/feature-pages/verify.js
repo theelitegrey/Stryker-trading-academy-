@@ -109,7 +109,7 @@ const SECS = ['top', 'problem', 'tour', 'more', 'how', 'list', 'related', 'faq',
         await p.screenshot({ path: path.join(dir, `full-${tag}.png`), fullPage: true });
         // section shots: hide the fixed app bars so they do not get stitched into tall element captures
         await p.addStyleTag({ content: '.mobile-topnav, .appnav-dock, #site-nav, .cookie-notice, [class*=cookie]{ visibility:hidden !important; }' });
-        const secIds = await p.evaluate(() => [...document.querySelectorAll('main.fpg > [id], main.fpg > section[id]')].map((e) => e.id));
+        const secIds = await p.evaluate(() => [...document.querySelectorAll('main > header[id], main > section[id], main.fpg > [id]')].map((e) => e.id));
         for (const id of [...new Set([...secIds, ...SECS])]) {
           const el = await p.$(id === 'end-h' ? '.fpg-final' : '#' + id);
           if (!el) continue;

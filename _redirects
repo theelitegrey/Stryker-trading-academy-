@@ -60,3 +60,7 @@ https://www.tradezoro.com/* https://tradezoro.com/:splat 301!
 # Chart layout links (17 Nov 2026): /charts/<8-char id> opens the charts page, which reads the id from the address
 # (assets/chart-layouts.js). Keep this AFTER every specific /charts/... rule above (/charts/agents).
 /charts/* /charts 200
+
+# Homepage v2 preview went live as / on 2026-11-19.
+/demo-home-v2 / 301
+/demo-home-v2.html / 301

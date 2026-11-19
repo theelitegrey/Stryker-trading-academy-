@@ -1,0 +1,55 @@
+name: diag-livefix
+# READ-ONLY probe (19 Nov): why the live order route says "Live trading switch could not be read".
+# Prints NAMES, status codes and booleans only. Never a value, never a key, never a token.
+on:
+  push:
+    branches: [diag/livefix]
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Probe
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          FIREBASE_SA_KEY: ${{ secrets.FIREBASE_SA_KEY }}
+        run: |
+          set +e
+          TOKEN=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | grep -oE '[A-Za-z0-9_-]{35,}' | tail -1); echo "::add-mask::$TOKEN"
+          ACCOUNT=$(printf '%s' "$CLOUDFLARE_ACCOUNT_ID" | grep -oE '[0-9a-f]{32}' | head -1); echo "::add-mask::$ACCOUNT"
+          api() { curl -s -H "Authorization: Bearer $TOKEN" "$@"; }
+          B="https://api.cloudflare.com/client/v4/accounts/$ACCOUNT"
+          echo "== Pages project: production env var NAMES + types, service bindings =="
+          api "$B/pages/projects/stryker-trading-academy" | jq -r '.result.deployment_configs.production | "env: " + ((.env_vars // {}) | to_entries | map(.key + "(" + (.value.type // "?") + ")") | join(", ")), "services: " + ((.services // {}) | tostring)'
+          echo "== Worker tz-finatic-edge: exists? secret NAMES =="
+          api "$B/workers/scripts/tz-finatic-edge/secrets" | jq -r '"success=" + (.success|tostring) + " names=" + ((.result // []) | map(.name) | join(","))'
+          api "$B/workers/scripts/tz-finatic-edge/settings" | jq -r '"settings success=" + (.success|tostring) + " bindings=" + ((.result.bindings // []) | map(.name + ":" + .type) | join(","))'
+          echo "== Workers observability: recent tz-finatic-edge lines (24 h) =="
+          NOW=$(date +%s000); FROM=$((NOW-86400000))
+          api -X POST -H 'content-type: application/json' "$B/workers/observability/telemetry/query" -d "{\"queryId\":\"q\",\"timeframe\":{\"from\":$FROM,\"to\":$NOW},\"view\":\"events\",\"limit\":40,\"parameters\":{\"filters\":[{\"key\":\"\$metadata.service\",\"operation\":\"eq\",\"type\":\"string\",\"value\":\"tz-finatic-edge\"}]}}" > obs.json
+          jq -r '"obs success=" + (.success|tostring)' obs.json; jq -r '.result.events.events[]? | ((.timestamp|tostring) + " " + ((.["$metadata"].message // .source.message // "") | tostring))' obs.json | sed -E 's/fntc_[A-Za-z0-9_]+/[key]/g; s/eyJ[A-Za-z0-9._-]+/[jwt]/g' | cut -c1-220 | head -40
+          echo "== Service account -> Firestore read of settings/liveTrading (GET only) =="
+          cat > p.mjs <<'E'
+          import crypto from 'node:crypto';
+          const raw = process.env.FIREBASE_SA_KEY || '';
+          console.log('key present', raw.length > 0);
+          let sa; try { sa = JSON.parse(raw); console.log('key parses as JSON true; has private_key', !!sa.private_key, '; account name', String(sa.client_email || '').split('@')[0]); } catch (e) { console.log('key parses as JSON false'); process.exit(0); }
+          const b = (x) => Buffer.from(x).toString('base64url'); const now = Math.floor(Date.now() / 1000);
+          const h = b(JSON.stringify({ alg: 'RS256', typ: 'JWT' })), p = b(JSON.stringify({ iss: sa.client_email, sub: sa.client_email, aud: 'https://oauth2.googleapis.com/token', scope: 'https://www.googleapis.com/auth/datastore', iat: now, exp: now + 600 }));
+          const jwt = h + '.' + p + '.' + crypto.sign('RSA-SHA256', Buffer.from(h + '.' + p), sa.private_key).toString('base64url');
+          const t = await fetch('https://oauth2.googleapis.com/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: 'grant_type=' + encodeURIComponent('urn:ietf:params:oauth:grant-type:jwt-bearer') + '&assertion=' + jwt });
+          const tj = await t.json().catch(() => ({}));
+          console.log('token mint status', t.status, tj.error ? ('error=' + tj.error) : '');
+          if (!tj.access_token) process.exit(0);
+          const D = 'https://firestore.googleapis.com/v1/projects/strykertrades-e0cd8/databases/(default)/documents/';
+          for (const doc of ['settings/liveTrading', 'brokerBrackets/zz-probe-nonexistent']) {
+            const r = await fetch(D + doc, { headers: { authorization: 'Bearer ' + tj.access_token } });
+            const j = await r.json().catch(() => ({}));
+            const en = j.fields && j.fields.enabled;
+            console.log('GET', doc, 'status', r.status, j.error ? ('err=' + j.error.status + ' ' + String(j.error.message || '').slice(0, 120)) : '', en ? ('enabled field=' + JSON.stringify(en)) : (j.fields ? 'fields=' + Object.keys(j.fields).join(',') : ''));
+          }
+          E
+          node p.mjs

@@ -152,6 +152,7 @@ def write(s):
         html = html.replace(f'<link rel="stylesheet" href="/assets/features-page.css?v={V}">',
                             f'<link rel="stylesheet" href="/assets/features-page.css?v={V}">\n<link rel="stylesheet" href="/assets/feature-page.css?v={V}">')
     html = re.sub(r'<script src="/assets/creators-motion\.js\?v=\d+" defer></script>', f'<script src="/assets/feature-page.js?v={V}" defer></script>', html)
+    html = re.sub(r'<script src="/assets/fx-page\.js\?v=\d+" defer></script>\n?', '', html)
     html = html.replace('<body class="dual-shell fp-page cm-page"', '<body class="dual-shell fp-page"')
     assert html.count('feature-page.css') == 1 and html.count('feature-page.js') == 1, s['page']
     path.write_text(html)

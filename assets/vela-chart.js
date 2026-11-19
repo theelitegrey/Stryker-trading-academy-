@@ -1581,7 +1581,7 @@ function legendFold(R) {
   }
   let saveMode = 'full';
   let galleryP = null;
-  const galleryMod = () => galleryP || (galleryP = import('./chart-tpl-gallery.js?v=1157').catch((e) => { galleryP = null; throw e; }));
+  const galleryMod = () => galleryP || (galleryP = import('./chart-tpl-gallery.js?v=1159').catch((e) => { galleryP = null; throw e; }));
   function openTplGallery(tab){
     setTpl(false);
     galleryMod().then((m) => m.openGallery({ ws, Pine, afterStructural, setLayout, toast, tab,

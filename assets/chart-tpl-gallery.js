@@ -131,8 +131,8 @@ export const FILTERS = [
 function thumb(t, cls) {
   const base = 'assets/images/templates/' + t.id;
   return el('div', { class: cls }, [
-    el('img', { class: 'stkt-th-d', src: base + '.webp?v=1157', alt: '', width: '640', height: '360', loading: 'lazy', decoding: 'async' }),
-    el('img', { class: 'stkt-th-l', src: base + '-light.webp?v=1157', alt: '', width: '640', height: '360', loading: 'lazy', decoding: 'async' }),
+    el('img', { class: 'stkt-th-d', src: base + '.webp?v=1159', alt: '', width: '640', height: '360', loading: 'lazy', decoding: 'async' }),
+    el('img', { class: 'stkt-th-l', src: base + '-light.webp?v=1159', alt: '', width: '640', height: '360', loading: 'lazy', decoding: 'async' }),
     el('span', { class: 'stkt-ov' }, [el('span', { class: 'stkt-tf', text: tfLabel(t.tf) }), proKinds(t).length ? proTag() : null]),
     el('span', { class: 'stkt-sample', text: 'Sample data' })
   ]);

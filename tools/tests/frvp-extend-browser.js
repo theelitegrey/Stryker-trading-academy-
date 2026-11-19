@@ -135,8 +135,10 @@ async function deltaEdge(b) {
   });
   let g = null; for (let i = 0; i < 30; i++) { await sleep(700); g = await probe(p); if (g.delta > 0) break; }
   await sleep(500);
-  const r = await p.evaluate(() => { const d = window.STRYKER_VELA.chart.renderer.renderer.userDrawings.drawings.find((x) => x.type === 'fixedrangevp'), W = window.STRYKER_VELA.chart.renderer.renderer.drawingProjector().width; return { n: d.__stkDelta ? d.__stkDelta.length : 0, onScreen: d.__stkDelta ? d.__stkDelta.filter((q) => q[0] >= 0 && q[0] + q[2] <= W && q[2] >= 3).length : 0 }; });
-  check(r.n > 0 && r.onScreen >= r.n * 0.9, 'A off screen left: delta bars are drawn on screen (inside the histogram)', r);
+  const r = await p.evaluate(() => { const R = window.STRYKER_VELA.chart.renderer.renderer, d = R.userDrawings.drawings.find((x) => x.type === 'fixedrangevp'), L = d.layout(R.drawingProjector());
+    return { n: d.__stkDelta ? d.__stkDelta.length : 0, a: L.anchorX, w: L.maxW, out: d.__stkDelta ? d.__stkDelta.filter((q) => q[0] < L.anchorX || q[0] + q[2] > L.anchorX + L.maxW + 0.5).length : -1 }; });
+  // member report 19 Nov: with A off screen the bars start at A (inside the histogram) and scroll with it, never held at the plot edge
+  check(r.n > 0 && r.out === 0, 'A off screen left: delta bars sit inside the histogram, from A, no wider than it', r);
   await shot(p, 'delta-a-offscreen');
   await ctx.close();
 }
@@ -160,10 +162,11 @@ async function deltaTwo(b) {
     for (let i = 0; i < 20; i++) {
       await sleep(600);
       r = await p.evaluate(() => { const R = window.STRYKER_VELA.chart.renderer.renderer, proj = R.drawingProjector();
-        return R.userDrawings.drawings.filter((x) => x.type === 'fixedrangevp').map((d) => { const L = d.layout(proj); return { x0: L && L.x0, x1: L && L.x1, rects: d.__stkDelta || null }; }); });
+        return R.userDrawings.drawings.filter((x) => x.type === 'fixedrangevp').map((d) => { const L = d.layout(proj); return { x0: L && L.x0, x1: L && L.x1, hx1: L && L.anchorX + L.maxW, rects: d.__stkDelta || null }; }); });
       if (r.every((q) => q.rects)) break;
     }
-    for (const q of r) for (const [x, , w] of q.rects || []) { seen++; if (x + w > q.x1 + 1) bad++; }
+    for (const q of r) for (const [x, , w] of q.rects || []) { seen++; if (x + w > q.x1 + 1 || x + w > q.hx1 + 1) bad++; }
+    check(bad === 0, 'two FRVPs, pan ' + nb + ': no delta bar wider than its own histogram', bad);
     check(r.every((q) => q.rects) && r.every((q) => (q.rects || []).every(([x, , w]) => x + w <= q.x1 + 1)), 'two FRVPs, pan ' + nb + ': delta bars stay inside their own range', r.map((q) => ({ x0: Math.round(q.x0), x1: Math.round(q.x1), n: q.rects && q.rects.length, maxR: q.rects && q.rects.length ? Math.round(Math.max(...q.rects.map((z) => z[0] + z[2]))) : null })));
     if (nb === 100) await shot(p, 'delta-two-frvps');
   }

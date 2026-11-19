@@ -273,11 +273,11 @@ function paintFrvp(ctx, d, proj, theme) {
   // into a few pixels. Then they go on the other side, inside the histogram, as thinner bars so the profile still shows through.
   const room = L.grow === 1 ? L.anchorX - gap : (proj.width || Infinity) - L.anchorX - gap;
   const inside = room < Math.min(maxDW, 48), side = inside ? L.grow : -L.grow;
-  const baseX = !inside ? L.anchorX : L.grow === 1 ? Math.max(L.anchorX, 0) : Math.min(L.anchorX, proj.width || L.anchorX);   // A off screen: the delta column sits at the edge of the plot
-  // Member report 18 Nov (GK): inside bars held at the plot edge ran on from there, so an older profile scrolled off the left painted its
-  // delta bars across newer candles towards the latest price. They stay inside their own range [x0, x1]: none once its far end is off
-  // screen, and never past it (x1 is the latest candle only when the profile extends to now).
-  const fit = !inside ? Infinity : L.grow === 1 ? L.x1 - baseX - gap : baseX - gap - L.x0;
+  // Member reports 18-19 Nov (GK): inside bars used to be held at the plot edge when A scrolled off, so an older profile painted its delta
+  // across newer candles towards the latest price. Now they start at A like the histogram and never run past the histogram's own width,
+  // so they scroll with the profile and stay inside its range (same left / right as the profile).
+  const baseX = L.anchorX;
+  const fit = !inside ? Infinity : Math.min(L.maxW, L.grow === 1 ? L.x1 - baseX : baseX - L.x0) - gap;
   if (inside && fit < 1) { d.__stkDelta = []; return; }
   if (mx > 0) for (let k = 0; k < D.d.length; k++) {
     const v = D.d[k]; if (!v) continue;
@@ -289,8 +289,9 @@ function paintFrvp(ctx, d, proj, theme) {
   const gaps = dashes(ctx, theme, L, P, D, side);
   d.__stkDelta = rects;
   // the profile reaches before the recorder's first day: say so plainly (the dashes alone read as a drawing fault)
-  const cover = from < FLOW_FIRST ? 'Delta: order flow only from ' + FLOW_FIRST_TXT + ' · dash = no order flow'
-    : D.first > from + 2 * 60000 || gaps ? 'Delta from ' + stamp(D.first) + (gaps ? ' · dash = no order flow' : '') : '';
+  // member report 17 Nov (thread 1569943438840037466): a range older than the recorded order flow shows delta only where data exists, and says so
+  const cover = D.first > from + 2 * 60000 || from < FLOW_FIRST ? 'Delta: no data before ' + stamp(D.first) + (gaps ? ' · dash = no data' : '')
+    : gaps ? 'Delta · dash = no data' : '';
   d.__stkNote = cover;
   if (cover) label(ctx, theme, L, cover);
 }

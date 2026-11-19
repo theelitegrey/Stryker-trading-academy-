@@ -389,7 +389,7 @@ async function long(b, theme, w, h) {
     check(![...DAYS_ASKED].some((d) => d < '2026-10-08'), tag + ': never asked for days before the recorder starts (8 Oct)', [...DAYS_ASKED].filter((d) => d < '2026-10-08'));
     // AUTO-FRVPHIST: a profile reaching before the recorded history must SAY so on the profile (not just a tiny dash)
     const nt = await p.evaluate(() => { const d = window.STRYKER_VELA.chart.renderer.renderer.userDrawings.drawings.find((x) => x.type === 'fixedrangevp'); return d.__stkNote || ''; });
-    check(/only from 8 Oct 2026/.test(nt), tag + ': note says order flow only exists from 8 Oct 2026', nt);
+    check(/^Delta: no data before (20 Oct|Oct 20) /.test(nt), tag + ': note says "Delta: no data before <first recorded minute>"', nt);
   } else note(tag + ' (old code) delta rows', g.delta);
   await shot(p, tag);
   check(!errors.length, tag + ': no console errors', errors.slice(0, 3));

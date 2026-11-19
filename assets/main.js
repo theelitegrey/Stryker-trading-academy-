@@ -31,7 +31,9 @@ document.addEventListener('DOMContentLoaded', () => {
     navToggle.addEventListener('click', () => {
       const open = navLinks.style.display === 'flex';
       navLinks.style.display = open ? 'none' : 'flex';
-      navLinks.style.cssText += open ? '' : 'position:absolute;top:64px;left:0;right:0;background:#0a0d13;flex-direction:column;padding:20px 32px;border-bottom:1px solid #232a3d;gap:18px;z-index:99;';
+      const bar = navToggle.closest('.nav');
+      navLinks.style.cssText += open ? '' : 'position:absolute;top:' + (bar ? bar.offsetHeight : 64) + 'px;left:0;right:0;background:#0a0d13;flex-direction:column;padding:20px 32px;border-bottom:1px solid #232a3d;gap:18px;z-index:99;';
+      navToggle.setAttribute('aria-expanded', open ? 'false' : 'true');
     });
   }
 

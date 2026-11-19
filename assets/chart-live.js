@@ -86,22 +86,110 @@ async function loadAccounts() {
 }
 const menuEvent = (what, id) => { try { window.dispatchEvent(new CustomEvent('stklive:menu', { detail: { what, id } })); } catch (e) {} };
 
-// ---- balances (Owner order 2026-11-16 "add total money"): read when the Trade menu opens, kept 30 s per account
-const BAL_MS = 30000;
+// ---- balances (Owner order 2026-11-16 "add total money"; Owner bug 2026-11-19 "the balance is not updated")
+// ROOT CAUSE of the 19 Nov bug: the broker link's balances answer is a list of dated balance SNAPSHOTS that it refreshes on its own
+// schedule (there is no refresh call in its API). We read it only when the Trade menu opened, took the first row with a value (not the
+// newest), never looked at its date, and never added the trades made since. So the figure stayed at the old snapshot all day.
+// Now (L.balanceOf / L.liveBalance, chart-live-core.js): the newest snapshot of the account's currency, net liquidation first; plus
+// the realised P&L of the broker's own fills AFTER that snapshot; re-read every 30 s while the Trade menu or the header strip is on
+// screen, and at once after every fill / position change. The snapshot's age shows as "updated X min ago" once it is over 2 min old.
+const BAL_MS = 30000, BAL_ROWS = 50, FILL_BATCH = 25, FILL_MAX = 100;
 S.bal = {};
-// -> { state: 'loading' | 'ok' | 'none', amount, currency, upl } ; starts a read when missing / older than 30 s
-function balance(id) {
+S.day = { at: 0, busy: false, key: '', fills: [], truncated: false, sig: '' };   // the active account's fills for today (and since the snapshot)
+const dayStart = () => { const d = new Date(now()); d.setHours(0, 0, 0, 0); return d.getTime(); };   // local midnight, like paper's day P&L
+const ordTime = (o) => L.stampOf({ updatedAt: o.orderTerminalAt || o.orderUpdatedAt || o.updatedAt || o.filledAt || o.orderCreatedAt || o.createdAt });
+// -> { state: 'loading' | 'ok' | 'none', amount, currency, upl, at, age, adjusted, kind, snap } ; starts a read when missing / older than 30 s
+function balance(id, force) {
   const a = S.accounts.find((x) => x.id === id); if (!a) return { state: 'none' };
   const c = S.bal[id];
-  if (c && (c.busy || now() - c.at < BAL_MS)) return c.v || { state: c.busy ? 'loading' : 'none' };
-  S.bal[id] = { at: now(), busy: true, v: c && c.v && c.v.state === 'ok' ? c.v : null };
-  data('balances', { accountId: id, limit: 20 }).then((r) => {
+  if (c && (c.busy || (!force && now() - c.at < BAL_MS))) return view(id);
+  S.bal[id] = { at: now(), busy: true, snap: c && c.snap, none: c && c.none };
+  data('balances', { accountId: id, limit: BAL_ROWS }).then((r) => {
     const b = L.balanceOf(r.data, a.currency);
-    S.bal[id] = { at: now(), busy: false, v: b ? { state: 'ok', amount: b.amount, currency: b.currency, upl: b.upl } : { state: 'none' } };
-  }).catch(() => { S.bal[id] = { at: now(), busy: false, v: (c && c.v && c.v.state === 'ok') ? c.v : { state: 'none' } }; })
-    .then(() => menuEvent('balance', id));
-  return S.bal[id].v || { state: 'loading' };
+    S.bal[id] = { at: now(), busy: false, snap: b || null, none: !b, rows: Array.isArray(r.data) ? r.data.length : 0 };
+  }).catch(() => { S.bal[id] = { at: now(), busy: false, snap: c && c.snap, none: !(c && c.snap) }; })
+    .then(() => { if (S.acct && S.acct.id === id) dayFills(); menuEvent('balance', id); });
+  return view(id);
 }
+// what the menu / strip / dock show for one account (no network)
+function view(id) {
+  const c = S.bal[id]; if (!c) return { state: 'loading' };
+  if (!c.snap) return c.busy && !c.none ? { state: 'loading' } : { state: 'none' };
+  const b = c.snap, act = S.acct && S.acct.id === id;
+  const lb = act && S.day.key === id + '|' + b.at ? L.liveBalance(b, S.day.truncated ? [] : S.day.fills, S.data.positions) : { amount: b.amount, at: b.at, adjusted: false };
+  return { state: 'ok', amount: lb.amount, currency: b.currency, upl: b.upl, at: b.at, kind: b.kind, adjusted: !!lb.adjusted, fillsAfter: lb.fillsAfter || 0,
+    age: lb.adjusted ? '' : L.ageText(b.at, now()), snap: b };
+}
+// today's fills of the active account (orders filled since local midnight, or since the snapshot when that is older). A filled order's
+// fills never change, so they are cached per order and only NEW filled orders are read (25 ids per call): the data route allows 20
+// calls a minute per visitor and the 10 s positions poll already uses 6.
+const fillCache = new Map();   // accountId|orderId -> fills[]
+function dayFills(force) {
+  if (!S.acct) return;
+  const id = S.acct.id, c = S.bal[id], snapAt = c && c.snap && c.snap.at, from = Math.min(dayStart(), snapAt > 0 ? snapAt : Infinity);
+  const filled = S.data.orders.filter((o) => /FILL/i.test(o.status || '') && !(ordTime(o) < from))
+    .map((o) => String(o.orderId || o.id || '')).filter((x) => /^[A-Za-z0-9._:-]{1,80}$/.test(x));
+  const key = id + '|' + (snapAt || ''), use = filled.slice(0, FILL_MAX), sig = key + '|' + use.join(',');
+  const done = () => { const fills = []; use.forEach((o) => (fillCache.get(id + '|' + o) || []).forEach((f) => fills.push(f))); S.day = Object.assign(S.day, { at: now(), busy: false, key, fills, truncated: filled.length > FILL_MAX, sig }); };
+  if (S.day.busy) return;
+  // force (a fill / position change): partially filled orders may have new fills, so their cache is dropped
+  if (force) S.data.orders.forEach((o) => { if (/PARTIAL/i.test(o.status || '')) fillCache.delete(id + '|' + String(o.orderId || o.id || '')); });
+  const need = use.filter((o) => !fillCache.has(id + '|' + o));
+  if (!need.length) { const ch = S.day.sig !== sig; done(); if (ch) { render(); menuEvent('balance', id); } return; }
+  S.day.busy = true;
+  (async () => {
+    for (let i = 0; i < need.length; i += FILL_BATCH) {
+      const part = need.slice(i, i + FILL_BATCH), r = await data('fills', { accountId: id, orderIds: part });
+      const rows = Array.isArray(r.data) ? r.data : [];
+      part.forEach((o) => fillCache.set(id + '|' + o, rows.filter((f) => String(f.orderId || '') === o)));
+    }
+  })().then(() => { if (S.acct && S.acct.id === id) done(); else S.day.busy = false; })
+    .catch(() => { S.day.busy = false; S.day.at = now(); })
+    .then(() => { render(); menuEvent('balance', id); });
+}
+// header strip / dock figures for the active live account: { bal, cur, age, rp, rpTip, up, upTip }
+export function summary() {
+  if (!S.acct) return null;
+  const id = S.acct.id, b = balance(id), ds = dayStart();
+  const lastOf = (root) => { let v = P && P.lastPrice ? P.lastPrice(root + '1!') : undefined; if (!Number.isFinite(v) && TEST && TEST.last) v = TEST.last(root + '1!'); return v; };
+  const ot = L.openTotal(S.data.positions, lastOf);
+  const up = ot.open ? (ot.value != null ? ot.value : (b.state === 'ok' && b.upl != null ? b.upl : null)) : null;
+  let rp = null, rpTip = 'Realized P&L today';
+  const today = S.day.key.startsWith(id + '|') ? S.day.fills : null;
+  const dr = today && !S.day.truncated ? L.dayRealized(today, S.data.positions, ds) : null;
+  if (dr && dr.complete) { rp = dr.value; rpTip = 'Realized P&L today, from ' + dr.fills + ' fill' + (dr.fills === 1 ? '' : 's') + ' (after commission)'; }
+  else {
+    const pr = L.positionsRealized(S.data.positions, ds);
+    if (pr != null) { rp = pr; rpTip = 'Realized P&L today, as your broker reports it'; }
+    else if (b.state === 'ok' && b.snap && b.snap.realized != null) { rp = b.snap.realized; rpTip = 'Realized P&L today, as your broker reports it'; }
+    else if (dr) { rp = dr.value; rpTip = 'Realized P&L today from today’s fills. ' + dr.why; }
+    else rpTip = S.day.busy ? 'Reading today’s fills…' : 'Not available yet';
+  }
+  const balTip = b.state !== 'ok' ? 'Balance' : (b.adjusted ? 'Balance: your broker’s figure plus ' + b.fillsAfter + ' fill' + (b.fillsAfter === 1 ? '' : 's') + ' since it' : 'Balance' + (b.age ? ' (' + b.age + ')' : ''));
+  return { bal: b.state === 'ok' ? b.amount : null, cur: b.currency, age: b.state === 'ok' ? b.age : '', balTip, rp, rpTip, up };
+}
+// a fill or a position change -> balance + fills read now (not when the 30 s cache runs out)
+function posSig() {
+  const p = S.data.positions.map((x) => L.contractOf(x) + ':' + (x.quantity != null ? x.quantity : x.units) + ':' + (x.averageBuyPrice || x.averageSellPrice || x.averagePrice || '')).sort().join(',');
+  const f = S.data.orders.filter((o) => /FILL/i.test(o.status || '')).map((o) => String(o.orderId || o.id) + ':' + (((o.legs || [])[0] || {}).filledQuantity || o.filledQuantity || '')).sort().join(',');
+  return p + '|' + f;
+}
+function afterRead() {
+  if (!S.acct) return;
+  const sig = posSig();
+  if (S.day.posSig !== undefined && sig !== S.day.posSig) { S.day.posSig = sig; balance(S.acct.id, true); dayFills(true); return; }
+  S.day.posSig = sig;
+  dayFills();
+}
+// every 30 s while the Trade menu or the header strip is on screen (and the tab is visible): balances of what is shown
+const shown = (sel) => { const e = document.querySelector(sel); return !!(e && !e.hidden && e.offsetParent !== null); };
+setInterval(() => {
+  if (document.hidden || !S.accounts.length) return;
+  const menu = shown('#stkc-trade-pop') || shown('.stkpt-tmenu') || !!document.getElementById('stktm-mg'), strip = shown('#stkas');
+  if (menu) S.accounts.forEach((a) => balance(a.id));
+  else if (strip && S.acct) balance(S.acct.id);
+  if ((menu || strip) && S.acct) { dayFills(); menuEvent('balance', S.acct.id); }   // also re-draws the "updated X min ago" age
+}, TEST && TEST.balMs ? TEST.balMs : BAL_MS);
 
 // ---- per-account notes (pencil): label, prop firm, account type. students/{uid}/brokerAccounts/{accountId} (owner only, see
 // functions-src/firestore.rules), mirrored in localStorage so the menu paints at once and still works if Firestore is unreachable.
@@ -164,6 +252,7 @@ async function pick(id) {
   }
   S.acct = a; S.data = { positions: [], orders: [] }; S.lastOkStart = 0; S.lastWriteAt = 0; S.unknown = false; S.readErr = ''; S.skip = false; S.modifyOk = null; S.placeSchema = null; S.placeErr = ''; S.lastAct = Date.now();
   S.env = null; S.envAt = 0; S.envErr = ''; S.group = null; S.groupCode = ''; S.alarmSeen = '';
+  S.day = { at: 0, busy: false, key: '', fills: [], truncated: false, sig: '' }; balance(id, true);
   // 'env' also pre-warms the server (Finatic session + kill switch cached) and the browser's connection; reads start in parallel
   read(); readKill();
   await envCheck();
@@ -236,7 +325,7 @@ async function read() {
     S.data = { positions: (r.data && r.data.positions) || [], orders: (r.data && r.data.orders) || [] };
     S.lastOkStart = start; S.readErr = '';
     if (S.unknown && start > S.lastWriteAt) S.unknown = false;
-    syncSoon();
+    syncSoon(); afterRead();
   } catch (e) { if (S.acct && S.acct.id === id) S.readErr = e.message || 'Read failed.'; if (e.needsConnect) S.readErr = 'The broker connection needs to be renewed. Connect a broker again.'; }
   finally { S.reading = false; }
   render();
@@ -448,8 +537,8 @@ export function dock() {
   const oh = done.map((o) => { const leg = (o.legs || [])[0] || {}, s = String(leg.side || o.side || o.action || '').toLowerCase(); return { t: first(o, ['updatedAt', 'filledAt', 'createdAt', 'submittedAt', 'timestamp']), sym: L.contractOf(leg) || L.contractOf(o) || '—', side: s === 'buy' ? 'Buy' : s === 'sell' ? 'Sell' : '—', buy: s === 'buy', qty: first(leg, ['quantity']) || first(o, ['orderQty', 'quantity']) || '—', price: px(Number(first(o, ['averageFillPrice', 'avgFillPrice', 'limitPrice', 'price']) || first(leg, ['limitPrice', 'price'])) || null), note: String(o.status || '').replace(/_/g, ' ').toLowerCase().replace(/^./, (c) => c.toUpperCase()) }; })
     .sort((a, b) => String(b.t).localeCompare(String(a.t))).slice(0, 100);
   const th = S.fills.rows == null ? null : S.fills.rows.map((f) => { const s = String(first(f, ['side', 'action'])).toLowerCase(); return { t: first(f, ['filledAt', 'timestamp', 'createdAt', 'executedAt', 'time']), sym: L.contractOf(f) || '—', side: s === 'buy' ? 'Buy' : s === 'sell' ? 'Sell' : '—', buy: s === 'buy', qty: first(f, ['quantity', 'qty', 'units']) || '—', price: px(Number(first(f, ['price', 'fillPrice', 'executionPrice'])) || null), pnl: null }; }).sort((a, b) => String(b.t).localeCompare(String(a.t)));
-  const b = balance(S.acct.id), bal = [];
-  if (b.state === 'ok') { bal.push(['Balance', L.fmtMoney(b.amount, b.currency)]); if (b.upl != null) bal.push(['Open P&L', L.fmtMoney(b.upl, b.currency, true), b.upl]); }
+  const sm = summary(), bal = [];
+  if (sm && sm.bal != null) { bal.push(['Balance' + (sm.age ? ' (' + sm.age + ')' : ''), L.fmtMoney(sm.bal, sm.cur)]); if (sm.rp != null) bal.push(['Realized P&L today', L.fmtMoney(sm.rp, sm.cur, true), sm.rp]); if (sm.up != null) bal.push(['Open P&L', L.fmtMoney(sm.up, sm.cur, true), sm.up]); }
   return { live: true, pos, ord, oh, th, bal, cancelAll: null, nPos: pos.length, nOrd: ord.length };
 }
 // drag a working order line to a new price
@@ -679,6 +768,6 @@ export function mountLive(paperApi, opts) {
   P.setLiveHook({ active, lines, chipText, badgeFor, tickOf, chipX, drag, flattenActive, openTicket, renderHead, renderSummary, renderView, foot, dock, dockTrades, ladder, domState, cancel, flatten, caps, opInfo, placeTicket, kill, killOn, retryEnv });
   loadMeta(); loadAccounts();
   window.addEventListener('storage', (e) => { if (e.key === lsUserKey()) loadAccounts(); });
-  Object.assign(window.__stkLive, { connect, pick, leave, read, loadAccounts, info, confirmSheet, balance, metaOf, saveMeta, disconnect, L, envCheck, retryEnv, syncGroup });
+  Object.assign(window.__stkLive, { connect, pick, leave, read, loadAccounts, info, confirmSheet, balance, summary, metaOf, saveMeta, disconnect, L, envCheck, retryEnv, syncGroup });
   Object.defineProperty(window.__stkLive, 'blockReason', { configurable: true, get: () => blockReason() });   // a getter (Object.assign would copy one frozen value)
 }

@@ -2842,6 +2842,7 @@ html.stk-cps .stkas-row{ display:flex; justify-content:space-between; gap:16px; 
 html.stk-cps .stkas-row b{ color:var(--ink-0); font-weight:700; }
 html.stk-cps .stkas-row b.up{ color:var(--bull, #03c988); }
 html.stk-cps .stkas-row b.down{ color:var(--bear, #f23645); }
+html.stk-cps .stkas-age{ margin:-4px 0 4px; text-align:right; font:400 11px/16px var(--font-body, system-ui, sans-serif); color:var(--ink-3); }
 :root[data-theme="light"] .mclock-pop{ background:#fff; box-shadow:0 18px 40px -16px rgba(14,22,33,.28); }
 .plan-usage-note{ margin:0 0 14px; padding:10px 14px; border:1px solid var(--line); border-radius:10px; background:var(--bg-1); color:var(--ink-2); font-size:13px; line-height:1.5; }
 .plan-usage-note b{ color:var(--ink-0); font-family:var(--font-mono); }
@@ -5629,6 +5630,7 @@ html[data-device="phone"] .stktm-act, html[data-device="tablet"] .stktm-act{ opa
 .stktm-bk em{ font:500 11px/16px var(--font-mono, ui-monospace, monospace); overflow:hidden; text-overflow:ellipsis; }
 .stktm-bv{ display:flex; align-items:center; height:28px; font:700 20px/28px var(--font-body, system-ui, sans-serif); color:var(--ink-0); font-variant-numeric:tabular-nums; white-space:nowrap; }
 .stktm-bv .stktm-skel{ width:88px; height:16px; }
+.stktm-age{ display:block; font:400 11px/16px var(--font-body, system-ui, sans-serif); color:var(--ink-3); white-space:nowrap; }
 .stktm-acts{ gap:8px; }
 .stktm-act, .stktm-ph{ width:36px; height:36px; }
 .stktm-act{ opacity:1; border:1px solid var(--line); border-radius:10px; background:rgba(255,255,255,.03); }
@@ -5744,8 +5746,9 @@ html .vela-dsp-lab{ flex-basis:120px; }
 .stkpt-tmenu.stktm .stktm-chip{ height:16px; padding:0; background:none; font-size:11px; line-height:16px; }
 .stkpt-tmenu.stktm .stktm-bal{ align-items:flex-end; gap:0; }
 .stkpt-tmenu.stktm .stktm-bk{ justify-content:flex-end; gap:4px; font-size:11px; line-height:14px; }
-.stkpt-tmenu.stktm .stktm-bv{ justify-content:flex-end; height:20px; font:600 14px/20px var(--font-body, system-ui, sans-serif); }
+.stkpt-tmenu.stktm .stktm-bv{ justify-content:flex-end; height:20px; font:600 14px/20px var(--font-body, system-ui, sans-serif); font-variant-numeric:tabular-nums; }
 .stkpt-tmenu.stktm .stktm-bv .stktm-skel{ width:64px; height:12px; }
+.stkpt-tmenu.stktm .stktm-age{ text-align:right; }
 .stkpt-tmenu.stktm .stktm-acts{ gap:4px; }
 .stkpt-tmenu.stktm .stktm-act, .stkpt-tmenu.stktm .stktm-ph{ width:28px; height:28px; border-radius:8px; }
 .stkpt-tmenu.stktm .stktm-act svg{ width:14px; height:14px; }

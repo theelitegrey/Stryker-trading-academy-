@@ -52,13 +52,14 @@ export function titleOf(a) {
   return Object.assign(t, { short: t.name + (t.firm && t.firm !== t.name ? ' · ' + t.firm : '') });
 }
 // balance cell (label over amount): skeleton while loading, "—" when the broker gives none
-const balCell = (v, attrs, upl) => '<span class="stktm-bal"' + attrs + '><span class="stktm-bk">Balance' + (upl || '') + '</span><span class="stktm-bv">' + v + '</span></span>';
+// age (live only, 2026-11-19): "updated 4 min ago" under the amount when the broker's snapshot is older than 2 min
+const balCell = (v, attrs, upl, age) => '<span class="stktm-bal"' + attrs + '><span class="stktm-bk">Balance' + (upl || '') + '</span><span class="stktm-bv">' + v + '</span>' + (age ? '<span class="stktm-age">' + esc(age) + '</span>' : '') + '</span>';
 function balHtml(id) {
   const A = API(); const b = A && A.balance ? A.balance(id) : { state: 'none' }, at = ' data-bal="' + esc(id) + '"';
   if (b.state === 'loading') return balCell('<i class="stktm-skel" role="img" aria-label="Loading balance"></i>', at);
   if (b.state !== 'ok') return balCell('—', at + ' title="Balance not available"');
   const upl = b.upl != null && b.upl !== 0 ? '<em class="' + (b.upl > 0 ? 'up' : 'down') + '" title="Open P&amp;L">' + esc(A.L.fmtMoney(b.upl, b.currency, true)) + '</em>' : '';
-  return balCell(esc(A.L.fmtMoney(b.amount, b.currency)), at + ' title="Account balance"', upl);
+  return balCell(esc(A.L.fmtMoney(b.amount, b.currency)), at + ' title="' + (b.adjusted ? 'Your broker’s balance plus the fills since it' : 'Account balance') + '"', upl, b.age);
 }
 const pickBtn = (attrs, on, label, inner) => '<button type="button" role="menuitemradio" class="stkc-item stktm-pick" ' + attrs + ' aria-checked="' + !!on + '" aria-label="' + esc(label) + '" tabindex="-1">' + inner + '</button>';
 const VD = '<i class="stktm-vd" aria-hidden="true"></i>';

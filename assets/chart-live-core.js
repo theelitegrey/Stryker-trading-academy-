@@ -272,24 +272,141 @@ export function grantFor(acct, grants) {
   if (byBroker.length === 1) return byBroker[0].id;
   return live.length === 1 ? live[0].id : '';
 }
-// Balances: Finatic returns a list (one row per currency / balance kind), each value a number OR a numeric string. Total money =
-// net liquidation / account value first, then total cash, then cash, then current, then available. Open P&L when given.
-const VAL_KEYS = ['netLiquidationValue', 'net_liquidation_value', 'netLiquidation', 'accountValue', 'account_value', 'totalValue', 'total_value', 'equity',
-  'totalCashValue', 'total_cash_value', 'cashBalance', 'cash_balance', 'currentBalance', 'current_balance', 'balance', 'availableBalance', 'available_balance'];
-const UPL_KEYS = ['unrealizedPnl', 'unrealized_pnl', 'unrealizedProfitLoss', 'unrealized_profit_loss', 'openPnl', 'open_pnl', 'totalUnrealizedPnl', 'openTradeEquity', 'open_trade_equity'];
+// Balances (Owner bug 2026-11-19 "the balance is not updated"): the broker link's balances endpoint is a LIST of balance SNAPSHOTS
+// (LegacyBrokerBalance: one row per sync and balance kind, each stamped balanceCreatedAt "as-of" + lastUpdated), not one live row.
+// The old code took the first row that had a value, i.e. whichever snapshot the list happened to start with, and never looked at its
+// date. Now: only rows of the account's currency, the NEWEST snapshot wins (by its own timestamp; undated rows lose to dated ones),
+// and inside that snapshot the field order is:
+//   1 net liquidation / account value / equity (includes realised and open P&L as of the snapshot)   kind 'netliq'
+//   2 total cash / cash / current balance                                                              kind 'cash'
+//   3 available balance (last resort)                                                                  kind 'available'
+// A cumulative "total realised" field is never added on top (its period is not stated, it would double count). What moves the
+// figure between snapshots is liveBalance() below: the snapshot plus the realised P&L of the broker's own fills AFTER the snapshot.
+// Values may be numbers or numeric strings. Returns { amount, currency, upl, kind, key, at (ms | null), realized (day field | null) }.
+const NETLIQ_KEYS = ['netLiquidationValue', 'net_liquidation_value', 'netLiquidation', 'netLiq', 'accountValue', 'account_value', 'totalValue', 'total_value', 'equity', 'totalEquity'];
+const CASH_KEYS = ['totalCashValue', 'total_cash_value', 'cashBalance', 'cash_balance', 'currentBalance', 'current_balance', 'balance'];
+const AVAIL_KEYS = ['availableBalance', 'available_balance', 'availableToWithdraw'];
+const RPL_KEYS = ['realizedPnlToday', 'dayRealizedPnl', 'todayRealizedPnl', 'dailyRealizedPnl'];   // explicitly today's only
+const UPL_KEYS = ['unrealizedPnl', 'unrealized_pnl', 'unrealizedProfitLoss', 'unrealized_profit_loss', 'openPnl', 'openPnL', 'open_pnl', 'totalUnrealizedPnl', 'openTradeEquity', 'open_trade_equity'];
+const TS_KEYS = ['lastUpdated', 'last_updated', 'updatedAt', 'updated_at', 'balanceUpdatedAt', 'asOf', 'as_of', 'balanceCreatedAt', 'balance_created_at', 'snapshotDate', 'createdAt', 'timestamp'];
 const numOf = (v) => { if (v == null || v === '' || typeof v === 'boolean') return null; if (typeof v === 'object') v = v.amount != null ? v.amount : v.value; const n = Number(String(v).replace(/[,$\s]/g, '')); return Number.isFinite(n) ? n : null; };
+const firstNum = (r, ks) => { for (const k of ks) { const n = numOf(r[k]); if (n != null) return [n, k]; } return null; };
+// a record's own time in ms (newest of its stamps), null when it has none. Date-only strings count as that day 00:00 UTC.
+export function stampOf(r) {
+  let best = null;
+  for (const k of TS_KEYS) { const v = r && r[k]; if (v == null || v === '') continue; const t = typeof v === 'number' ? (v < 1e12 ? v * 1000 : v) : Date.parse(String(v)); if (Number.isFinite(t) && (best == null || t > best)) best = t; }
+  return best;
+}
 export function balanceOf(rows, cur) {
-  const list = (Array.isArray(rows) ? rows : rows && typeof rows === 'object' ? [rows] : []).filter((r) => r && typeof r === 'object');
+  let list = (Array.isArray(rows) ? rows : rows && typeof rows === 'object' ? [rows] : []).filter((r) => r && typeof r === 'object');
   if (!list.length) return null;
   const want = str(cur).toUpperCase() || 'USD';
   const curOf = (r) => str(r.currencyCode || r.currency_code || r.currency).toUpperCase();
-  list.sort((a, b) => (curOf(b) === want) - (curOf(a) === want));
-  for (const k of VAL_KEYS) for (const r of list) {
-    const n = numOf(r[k]); if (n == null) continue;
-    let upl = null; for (const u of UPL_KEYS) { const x = numOf(r[u]); if (x != null) { upl = x; break; } }
-    return { amount: n, currency: curOf(r) || want, upl, kind: k };
+  if (list.some((r) => curOf(r) === want)) list = list.filter((r) => curOf(r) === want || !curOf(r));
+  // newest snapshot first; undated rows keep their order behind the dated ones
+  list = list.map((r, i) => ({ r, i, t: stampOf(r) })).sort((a, b) => (b.t != null) - (a.t != null) || (b.t || 0) - (a.t || 0) || a.i - b.i).map((x) => x.r);
+  const out = (r, amount, kind, key, realized) => { const u = firstNum(r, UPL_KEYS); return { amount, currency: curOf(r) || want, upl: u ? u[0] : null, kind, key, at: stampOf(r), realized: realized == null ? null : realized }; };
+  // the newest snapshot that carries any balance figure decides; an older snapshot never beats it
+  for (const r of list) {
+    const rp = (firstNum(r, RPL_KEYS) || [null])[0];
+    const nl = firstNum(r, NETLIQ_KEYS); if (nl) return out(r, nl[0], 'netliq', nl[1], rp);
+    const c = firstNum(r, CASH_KEYS); if (c) return out(r, c[0], 'cash', c[1], rp);
+    const av = firstNum(r, AVAIL_KEYS); if (av) return out(r, av[0], 'available', av[1], rp);
   }
   return null;
+}
+// The figure to show. snap = balanceOf(); fills = the broker's fills (any day); positions = current positions.
+// When the snapshot is dated and the broker filled orders AFTER it, the realised P&L of those fills (FIFO, net of their commission)
+// is added, provided the account was flat in those contracts at the snapshot (else the cost of the carried position is unknown and
+// the snapshot is shown as is, with its age). -> { amount, at, adjusted, fillsAfter, why }
+export function liveBalance(snap, fills, positions) {
+  if (!snap) return null;
+  const base = { amount: snap.amount, at: snap.at, adjusted: false, fillsAfter: 0, why: '' };
+  if (!(snap.at > 0)) return base;
+  const after = (Array.isArray(fills) ? fills : []).filter((f) => { const t = fillTime(f); return t != null && t > snap.at; });
+  if (!after.length) return base;
+  const r = dayRealized(after, positions, snap.at + 1);
+  if (!r.complete) return Object.assign(base, { fillsAfter: r.fills, why: r.why });
+  // netliq at a flat snapshot = cash then; now = that + realised since (open P&L is shown separately as UP&L)
+  return { amount: Math.round((snap.amount + r.value) * 100) / 100, at: snap.at, adjusted: true, fillsAfter: r.fills, why: '' };
+}
+// "updated 3 min ago" when the snapshot is older than `after` ms (default 2 min), else ''. Never "delayed" / "real-time".
+export function ageText(at, now, after = 120000) {
+  if (!(at > 0) || !(now > 0)) return '';
+  const d = now - at; if (d < after) return '';
+  const m = Math.floor(d / 60000);
+  if (m < 60) return 'updated ' + m + ' min ago';
+  const h = Math.floor(m / 60); if (h < 48) return 'updated ' + h + ' h ago';
+  return 'updated ' + Math.floor(h / 24) + ' days ago';
+}
+
+// ---- today's realised P&L from the broker's fills (header strip RP&L for live accounts, 2026-11-19) ------------------------
+// fills: FDXBrokerOrderFill rows { fillId, orderId, securityId, side, quantity, price, executedAt, commission }. Matched FIFO per
+// contract (point value from ROOTS); commissions of today's fills are subtracted (net, like paper's day P&L). The position held at the
+// start of the day is netNow - (today's signed fills): when it is not flat its cost is unknown, so the result is marked incomplete and
+// the caller falls back to the broker's own realised figure. -> { value, fills, complete, why }
+const fillTime = (f) => { for (const k of ['executedAt', 'executed_at', 'filledAt', 'fillTime', 'timestamp', 'time', 'createdAt']) { const v = f && f[k]; if (v != null && v !== '') { const t = typeof v === 'number' ? (v < 1e12 ? v * 1000 : v) : Date.parse(String(v)); if (Number.isFinite(t)) return t; } } return null; };
+export function dayRealized(fills, positions, dayStartMs) {
+  const seen = new Set(), by = new Map();
+  let fees = 0, n = 0, unknown = 0;
+  for (const f of Array.isArray(fills) ? fills : []) {
+    if (!f || typeof f !== 'object') continue;
+    const id = String(f.fillId || f.id || f.executionId || '') || (String(f.orderId) + '|' + fillTime(f) + '|' + f.price + '|' + f.quantity);
+    if (seen.has(id)) continue; seen.add(id);
+    const t = fillTime(f); if (t == null) { unknown++; continue; }
+    if (t < dayStartMs) continue;
+    const code = contractOf(f), pv = (ROOTS[rootOfCode(code)] || {}).pv;
+    const q = Math.abs(num(f.quantity != null ? f.quantity : f.qty)), px = num(f.price != null ? f.price : f.fillPrice);
+    if (!code || !pv || !q || !(px > 0)) { unknown++; continue; }
+    const side = String(f.side || f.action || '').toLowerCase().startsWith('s') ? -1 : 1;
+    if (!by.has(code)) by.set(code, []);
+    by.get(code).push({ t, q: side * q, px, pv });
+    fees += Math.abs(num(f.commission)); n++;
+  }
+  let value = 0, complete = unknown === 0;
+  for (const [code, list] of by) {
+    list.sort((a, b) => a.t - b.t);
+    const today = list.reduce((s, x) => s + x.q, 0), start = netPosition(positions, code).qty - today;
+    if (start) complete = false;   // carried in from an earlier day: its cost basis is not in today's fills
+    const lots = [];   // open lots { q (signed), px }
+    for (const x of list) {
+      let q = x.q;
+      while (q && lots.length && Math.sign(lots[0].q) !== Math.sign(q)) {
+        const m = Math.min(Math.abs(q), Math.abs(lots[0].q));
+        value += (x.px - lots[0].px) * m * Math.sign(lots[0].q) * x.pv;
+        lots[0].q -= Math.sign(lots[0].q) * m; q -= Math.sign(q) * m;
+        if (!lots[0].q) lots.shift();
+      }
+      if (q) lots.push({ q, px: x.px });
+    }
+  }
+  value = Math.round((value - fees) * 100) / 100;
+  return { value, fills: n, complete, why: complete ? '' : unknown ? 'Some fills could not be read.' : 'A position was carried in from an earlier day.' };
+}
+// broker's own realised P&L of positions closed / updated today (fallback when fills can't give it) -> number | null
+export function positionsRealized(positions, dayStartMs) {
+  let s = null;
+  for (const p of Array.isArray(positions) ? positions : []) {
+    const r = numOf(p && (p.realizedProfitLossWithCommission != null ? p.realizedProfitLossWithCommission : p.realizedProfitLoss)); if (r == null) continue;
+    const t = stampOf({ updatedAt: p.positionClosedAt || p.positionUpdatedAt || p.snapshotDate }); if (t == null || t < dayStartMs) continue;
+    s = (s || 0) + r;
+  }
+  return s == null ? null : Math.round(s * 100) / 100;
+}
+// open P&L of every open position: (last - avg) x qty x point value per contract; lastOf(root) gives the chart's last price.
+// Falls back to the broker's per-position figure; null when a position can't be priced either way. -> { value, open }
+export function openTotal(positions, lastOf) {
+  const codes = new Set(); for (const p of Array.isArray(positions) ? positions : []) { const c = contractOf(p); if (c) codes.add(c); }
+  let v = 0, open = 0, missing = false;
+  for (const code of codes) {
+    const n = netPosition(positions, code); if (!n.qty) continue; open++;
+    const root = rootOfCode(code), last = lastOf ? lastOf(root) : undefined;
+    const x = openPnl(n.qty, n.avg, Number.isFinite(last) ? last : null, (ROOTS[root] || {}).pv, n.upl);
+    if (x == null || !Number.isFinite(x)) missing = true; else v += x;
+  }
+  // positions in symbols we can't map (not one of the four roots) count as missing
+  for (const p of Array.isArray(positions) ? positions : []) if (p && !contractOf(p) && num(p.quantity != null ? p.quantity : p.units) && String(p.status || 'OPEN').toUpperCase() !== 'CLOSED') { open++; missing = true; }
+  return { value: missing ? null : Math.round(v * 100) / 100, open };
 }
 // "$50,312.40" / "€1,200.00" / "-$12.50"; '' for nothing; sign option for P&L ("+$120.00")
 export function fmtMoney(n, cur, sign) {

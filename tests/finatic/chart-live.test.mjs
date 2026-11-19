@@ -134,7 +134,7 @@ assert.deepEqual(L.acctLabel({ broker: 'tradovate', name: 'DEMO123456' }), { bro
   assert.equal(L.grantFor(L.acctInfo({ accountId: U, grantId: 'g2', brokerId: 'x' }), G), 'g2', 'explicit link');
   assert.equal(L.grantFor(tv, []), '');
   // balances: numbers or numeric strings, value preference, currency, open P&L
-  assert.deepEqual(L.balanceOf([{ currencyCode: 'USD', cashBalance: '50000', netLiquidationValue: '50312.4', unrealizedPnl: '-120.5' }]), { amount: 50312.4, currency: 'USD', upl: -120.5, kind: 'netLiquidationValue' });
+  assert.deepEqual(L.balanceOf([{ currencyCode: 'USD', cashBalance: '50000', netLiquidationValue: '50312.4', unrealizedPnl: '-120.5' }]), { amount: 50312.4, currency: 'USD', upl: -120.5, kind: 'netliq', key: 'netLiquidationValue', at: null, realized: null });
   assert.equal(L.balanceOf([{ currency: 'USD', totalCashValue: 49870.25 }]).amount, 49870.25);
   assert.equal(L.balanceOf([{ balanceType: 'CASH', currentBalance: '1,250.00', currencyCode: 'EUR' }]).currency, 'EUR');
   assert.equal(L.balanceOf([{ currencyCode: 'EUR', cashBalance: 10 }, { currencyCode: 'USD', cashBalance: 20 }], 'USD').amount, 20, 'account currency row first');

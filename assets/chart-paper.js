@@ -890,11 +890,11 @@ function buildStrip(){
 }
 function stripData(){
   if (liveOn()) {
-    const L = window.__stkLive, st = L && L.state, a = st && st.acct; if (!a) return null;
-    const b = L.balance(a.id), i = L.info ? L.info(activeCellSym()) : null;
-    const open = (st.data.positions || []).filter((p) => p && String(p.status || 'OPEN').toUpperCase() !== 'CLOSED').length;
-    const upl = !open ? null : (b && b.state === 'ok' && b.upl != null) ? b.upl : (i && i.pos && i.pos.qty && Number.isFinite(i.pnl)) ? i.pnl : null;
-    return { bal: b && b.state === 'ok' ? b.amount : null, rp: null, up: upl, rpTip: 'Not provided by your broker', cur: b && b.currency };
+    // live (admin): chart-live.js summary(): balance (newest broker snapshot + fills since), RP&L from today's fills, UP&L from
+    // every open position x the chart's last price (2026-11-19: RP&L / UP&L were "$ --" for live accounts)
+    const L = window.__stkLive, st = L && L.state, a = st && st.acct; if (!a || !L.summary) return null;
+    const s = L.summary(); if (!s) return null;
+    return { bal: s.bal, rp: s.rp, up: s.up, rpTip: s.rpTip, balTip: s.balTip, age: s.age, cur: s.cur };
   }
   if (!paperOn() || !acct) return null;
   const s = acct.summary(dayStart());
@@ -909,18 +909,24 @@ function updateStrip(){
   if (!d) { if (!strip.hidden) { strip.hidden = true; stripSig = ''; } return; }
   const vals = { bal: d.bal == null ? '$ --' : money(d.bal), rp: d.rp == null ? '$ --' : money(d.rp, false), up: d.up == null ? '$ --' : money(d.up, false) };
   const cls = { bal: '', rp: stripCls(d.rp), up: stripCls(d.up) };
-  const sig = JSON.stringify([vals, cls, d.rpTip]);
+  const sig = JSON.stringify([vals, cls, d.rpTip, d.balTip, d.age]);
   if (sig === stripSig && !strip.hidden) return;
   stripSig = sig;
   for (const k of ['bal', 'rp', 'up']) {
     const it = strip.querySelector('[data-k=' + k + ']'), v = it.querySelector('.stkas-v');
     v.textContent = vals[k]; v.className = 'stkas-v ' + cls[k];
     if (k === 'rp') it.title = d.rpTip || 'Realized P&L today';
+    if (k === 'bal') it.title = d.balTip || 'Balance';
   }
+  // live snapshot older than 2 min: the Bal tooltip says how old; the phone popover shows the age under Balance
   // phone chip shows UP&L, or Bal when flat
   strip.classList.toggle('chip-bal', d.up == null);
   const pop = strip.querySelector('.stkas-pop'); pop.textContent = '';
-  for (const [k, l] of [['bal', 'Balance'], ['rp', 'Realized P&L today'], ['up', 'Unrealized P&L']]) pop.appendChild(h('div', { class: 'stkas-row' }, [h('span', { text: l }), h('b', { class: cls[k], text: vals[k] })]));
+  for (const [k, l] of [['bal', 'Balance'], ['rp', 'Realized P&L today'], ['up', 'Unrealized P&L']]) {
+    const row = h('div', { class: 'stkas-row' }, [h('span', { text: l }), h('b', { class: cls[k], text: vals[k] })]);
+    pop.appendChild(row);
+    if (k === 'bal' && d.age) pop.appendChild(h('div', { class: 'stkas-age', text: d.age.replace(/^u/, 'U') }));
+  }
   strip.hidden = false;
 }
 window.addEventListener('stklive:menu', () => { try { updateStrip(); } catch (e) {} });

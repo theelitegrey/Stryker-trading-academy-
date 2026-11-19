@@ -34,39 +34,11 @@
 .hv-chips li{ display:inline-flex; align-items:center; gap:8px; height:32px; padding:0 12px; border-radius:999px; border:1px solid var(--line); font-size:13px; line-height:18px; font-weight:500; color:var(--ink-2); }
 .hv-chips li::before{ content:""; width:6px; height:6px; border-radius:50%; background:var(--gold); }
 
-/* the light object: candles draw in, the price path fades up, the GEX walls light, a fan of light opens from the last close */
-.hv-art-wrap{ position:relative; margin-top:16px; height:clamp(220px,32vw,460px); pointer-events:none; }
-.hv-art{ position:absolute; inset:0; width:100%; height:100%; -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 12%,#000 88%,transparent 100%); mask-image:linear-gradient(90deg,transparent 0,#000 12%,#000 88%,transparent 100%); }
+/* hero motion graphic: one canvas drawn by home-v2.js (candles build in, GEX walls breathe, last-price tag). Example session, not market data. */
+.hv-art-wrap{ position:relative; margin-top:16px; height:clamp(260px,32vw,460px); pointer-events:none; }
+.hv-art{ position:absolute; inset:0; width:100%; height:100%; display:block; -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 5%); mask-image:linear-gradient(90deg,transparent 0,#000 5%); }
+.hv-ex{ position:absolute; top:4px; right:16px; font:500 11px/16px var(--font-mono); letter-spacing:.04em; color:var(--ink-3); }
 .hv-cap{ grid-row:2; margin:24px 0 0; font-size:12px; line-height:16px; color:var(--ink-2); text-align:center; }
-@media (max-width:699px){ .hv-wall text{ display:none; } }
-.hv-k line{ stroke-width:1.5; } .hv-k rect{ stroke:none; }
-.hv-k.up line{ stroke:var(--bull); } .hv-k.up rect{ fill:var(--bull); }
-.hv-k.dn line{ stroke:var(--bear); } .hv-k.dn rect{ fill:var(--bear); }
-.hv-k{ opacity:.9; transform-box:fill-box; transform-origin:50% 100%; }
-.hv-path{ fill:none; stroke:var(--gold); stroke-width:2; stroke-linejoin:round; opacity:.9; }
-.hv-path-soft{ stroke-width:10; opacity:.12; }
-.hv-wall line{ stroke-width:1; stroke-dasharray:6 6; transform-box:fill-box; transform-origin:0 50%; }
-.hv-wall text{ font:600 13px/1 "Archivo Tnum","Archivo",sans-serif; letter-spacing:.04em; }
-.hv-wall.cw line{ stroke:var(--bull); } .hv-wall.cw text{ fill:var(--bull); }
-.hv-wall.zg line{ stroke:var(--amber); } .hv-wall.zg text{ fill:var(--amber); }
-.hv-wall.pw line{ stroke:var(--bear); } .hv-wall.pw text{ fill:var(--bear); }
-.hv-wall{ opacity:.85; }
-.hv-ray{ transform-box:fill-box; transform-origin:0 50%; opacity:.8; }
-.hv-glow{ opacity:.9; } .hv-dot{ fill:var(--gold-bright); }
-:root[data-theme="light"] .hv-ray{ opacity:.6; } :root[data-theme="light"] .hv-glow{ opacity:.5; }
-/* start states (JS + motion only); .go is added by home-v2.js once the hero is on screen */
-.hv-js:not(.hv-rm) .hv-k{ opacity:0; transform:scaleY(.2); }
-.hv-js:not(.hv-rm) .hv-path,.hv-js:not(.hv-rm) .hv-glow,.hv-js:not(.hv-rm) .hv-dot{ opacity:0; }
-.hv-js:not(.hv-rm) .hv-wall{ opacity:0; } .hv-js:not(.hv-rm) .hv-wall line{ transform:scaleX(0); }
-.hv-js:not(.hv-rm) .hv-ray{ opacity:0; transform:scaleX(0); }
-.hv-js:not(.hv-rm) .go .hv-k{ opacity:.9; transform:none; transition:opacity .25s var(--hv-ease), transform .35s var(--hv-ease); transition-delay:calc(var(--i) * 28ms); }
-.hv-js:not(.hv-rm) .go .hv-path{ opacity:.9; transition:opacity .8s var(--hv-ease) .9s; }
-.hv-js:not(.hv-rm) .go .hv-path-soft{ opacity:.12; }
-.hv-js:not(.hv-rm) .go .hv-wall{ opacity:.85; transition:opacity .5s var(--hv-ease); transition-delay:calc(1.1s + var(--i) * 120ms); }
-.hv-js:not(.hv-rm) .go .hv-wall line{ transform:none; transition:transform .9s var(--hv-ease); transition-delay:calc(1.1s + var(--i) * 120ms); }
-.hv-js:not(.hv-rm) .go .hv-glow{ opacity:.9; transition:opacity .9s var(--hv-ease) 1.3s; }
-.hv-js:not(.hv-rm) .go .hv-dot{ opacity:1; transition:opacity .3s var(--hv-ease) 1.3s; }
-.hv-js:not(.hv-rm) .go .hv-ray{ opacity:.8; transform:none; transition:opacity .6s var(--hv-ease), transform 1.2s var(--hv-ease); transition-delay:calc(1.35s + var(--j) * 40ms); }
 
 /* fanned montage: three real screenshots rise out of the light, then settle as you scroll */
 .hv-fan{ position:relative; z-index:1; margin-top:clamp(-96px,-6vw,-32px); padding-bottom:72px; display:grid; grid-template-columns:1fr; place-items:center; perspective:1600px; }

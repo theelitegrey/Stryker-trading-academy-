@@ -7,7 +7,7 @@
 //   developing POC / VAH / VAL (step lines through the session),
 //   initial balance high / low (first 30 or 60 min) + extensions (IB high/low +- k x IB range).
 // Maths in chart-of-pro-data.js (unit tests: tools/tests/chart-of-pro.test.mjs).
-import { tpoSingleRuns, tpoPoorExtremes, tpoDeveloping, firstTouch, ibExtensions } from './chart-of-pro-data.js?v=1152';
+import { tpoSingleRuns, tpoPoorExtremes, tpoDeveloping, firstTouch, firstFill, ibExtensions } from './chart-of-pro-data.js?v=1152';
 
 const MAG = '#e040fb', VA_LN = '#8fd8dc', SINGLE = '#9b7bff', POOR = '#f5b301', IB = '#2f6bff', IB_DAY = '#2563eb';
 const MONO = '"JetBrains Mono", ui-monospace, monospace';
@@ -16,6 +16,8 @@ export const IB_EXT_OPTIONS = ['1.5, 2, 3', '0.5, 1', '1, 2', '1, 1.5, 2', '0.5,
 // Default: it starts at the open and grows right. ax is kept on screen.
 export const tpoAnchorX = (I, x0, w) => (I && I.alignLeft === true ? Math.max(x0, w + 10) : x0);
 export const tpoColX = (left, ax, cw, j) => (left ? ax - cw * (j + 1) : ax + cw * j);
+// Single prints: how far the shading runs right. 'touch' (default, the behaviour before this option) keeps saved charts as they were.
+export const SINGLE_EXT = ['touch', 'filled', 'off'];
 export const extMults = (s) => String(s || '').split(/[ ,x]+/).map(Number).filter((k) => k > 0 && k <= 10);
 
 // Indicator inputs (chart-of-pro.js TPO_SCHEMA) and chart-type settings rows (chart-types.js).
@@ -23,6 +25,7 @@ export const TPO_EXTRA_INPUTS = [
   { key: 'showLetters', title: 'Show letters', type: 'bool', defval: true, tooltip: 'Off hides the period letters. The profile keeps the same width.' },
   { key: 'alignLeft', title: 'Align left (profile sits left of the session open)', type: 'bool', defval: false, tooltip: 'On puts the profile to the left of where the session opens, so a volume profile that grows right from the open sits beside it, not under it.' },
   { key: 'singles', title: 'Highlight single prints (extend until price returns)', type: 'bool', defval: false },
+  { key: 'singlesExt', title: 'Single prints extend', type: 'string', defval: 'touch', options: SINGLE_EXT, tooltip: 'touch = until price trades back into the single prints (as before). filled = until price has traded through all of them. off = shade them inside the profile only.', when: { key: 'singles', equals: true } },
   { key: 'poor', title: 'Mark poor highs and lows (extend until touched)', type: 'bool', defval: false, tooltip: 'Poor = the session high or low was reached in 2 or more periods.' },
   { key: 'nakedPoc', title: 'Naked POC lines (extend until price touches)', type: 'bool', defval: false },
   { key: 'devPoc', title: 'Developing POC, VAH and VAL', type: 'bool', defval: false },
@@ -34,6 +37,7 @@ export const TPO_EXTRA_ROWS = [
   { kind: 'toggle', key: 'showLetters', label: 'Show letters', defval: true },
   { kind: 'toggle', key: 'alignLeft', label: 'Align left (profile sits left of the session open)', defval: false },
   { kind: 'toggle', key: 'singles', label: 'Highlight single prints (extend until price returns)', defval: false },
+  { kind: 'select', key: 'singlesExt', label: 'Single prints extend', defval: 'touch', options: [['touch', 'Until touched'], ['filled', 'Until filled'], ['off', 'Off (shade only)']], when: { key: 'singles', equals: true } },
   { kind: 'toggle', key: 'poor', label: 'Mark poor highs and lows', defval: false },
   { kind: 'toggle', key: 'nakedPoc', label: 'Naked POC lines (extend until price touches)', defval: false },
   { kind: 'toggle', key: 'devPoc', label: 'Developing POC, VAH and VAL', defval: false },
@@ -68,6 +72,12 @@ export function drawTpoExtras(g, o) {
     const k = firstTouch(bars, from, lo, hi);
     return k < 0 ? { x: W, open: true } : { x: X(k), open: false };
   };
+  // the x where a zone is filled (price traded through all of it), else the right edge
+  const fillX = (lo, hi) => {
+    if (o.last) return { x: W, open: true };
+    const k = firstFill(bars, from, lo, hi);
+    return k < 0 ? { x: W, open: true } : { x: X(k), open: false };
+  };
   const L = o.labels;
   const hline = (y, xa, xb, c, w, dash) => { if (y < top - 2 || y > bot + 2 || xb < 0 || xa > W) return false; g.setLineDash(dash || []); g.strokeStyle = c; g.lineWidth = w; g.beginPath(); g.moveTo(xa, Math.round(y) + 0.5); g.lineTo(xb, Math.round(y) + 0.5); g.stroke(); g.setLineDash([]); return true; };
   const lab = (y, txt, c) => o.labels && o.labels.push({ y, txt, c });
@@ -76,7 +86,8 @@ export function drawTpoExtras(g, o) {
     for (const r of tpoSingleRuns(p)) {
       const yT = Y(r.hi), yB = Y(r.lo), y = Math.min(yT, yB), h = Math.max(1, Math.abs(yB - yT));
       if (y > bot || y + h < top) continue;
-      const e = endX(r.lo, r.hi);
+      const se = SINGLE_EXT.includes(I.singlesExt) ? I.singlesExt : 'touch';
+      const e = se === 'off' ? { x: o.x1, open: false } : se === 'filled' ? fillX(r.lo, r.hi) : endX(r.lo, r.hi);
       g.fillStyle = rgba(SINGLE, day ? 0.16 : 0.2); g.fillRect(o.x0, y, Math.max(0, e.x - o.x0), h);
       hline(y, o.x0, e.x, rgba(SINGLE, 0.7), 1, [3, 3]); hline(y + h, o.x0, e.x, rgba(SINGLE, 0.7), 1, [3, 3]);
       if (e.open && !o.last) lab(y + h / 2, 'Single', SINGLE);

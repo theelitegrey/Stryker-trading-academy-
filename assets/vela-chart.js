@@ -1529,31 +1529,42 @@ function legendFold(R) {
     let note = '';
     try { const r = await T.list(); list = r.items; defId = r.defaultId; note = r.note || ''; }
     catch (e) { note = 'Could not load your templates.'; }
+    let G = null;   // the gallery module, for the ready-made count (loaded before the menu is cleared, so two renders never interleave)
+    try { G = await galleryMod(); } catch (e) { /* the browse row still opens it (and reports) on click */ }
     tplPop.innerHTML = '';
     tplPop.appendChild(sheetHead(tplPop, 'Templates', T.signedIn() ? 'Saved to your account' : 'Saved in this browser. Sign in to keep them on your account.'));
 
-    const nameIn = el('input', { type: 'text', class: 'stkc-in', maxlength: String(T.NAME_MAX), placeholder: 'Name this chart setup', 'aria-label': 'Template name', enterkeyhint: 'done' });
+    const nameIn = el('input', { type: 'text', class: 'stkc-in', maxlength: String(T.NAME_MAX), placeholder: 'Name this chart', 'aria-label': 'Template name', enterkeyhint: 'done' });
     const saveBtn = el('button', { type: 'button', class: 'stkc-sbtn', text: 'Save' });
-    const setupBtn = el('button', { type: 'button', class: 'stkc-sbtn stkc-sbtn-2', text: 'Save as setup', title: 'Indicators, settings and panes only. Applies to any symbol and keeps your drawings.' });
-    const doSave = async (setup) => {
+    // What Save keeps (Owner 19 Nov: one Save, not two buttons): the whole chart (markets, timeframes, drawings, layout) or a
+    // SETUP = tools only (indicators, settings, panes; setupOf), which lands on any market and keeps the member's drawings.
+    const seg = el('div', { class: 'stkc-tseg', role: 'radiogroup', 'aria-label': 'What to save' });
+    const hint = el('p', { class: 'stkc-thint' });
+    const HINT = { full: 'Saves markets, timeframes, tools and drawings.', tools: 'Saves tools and panes only. Applies to any market and keeps your drawings.' };
+    const setMode = (m) => { saveMode = m; seg.querySelectorAll('button').forEach((x) => { const on = x.dataset.m === m; x.setAttribute('aria-checked', on ? 'true' : 'false'); x.tabIndex = on ? 0 : -1; }); hint.textContent = HINT[m]; };
+    [['full', 'Whole chart'], ['tools', 'Tools only']].forEach(([m, label]) => seg.appendChild(el('button', { type: 'button', role: 'radio', 'data-m': m, text: label, onclick: () => setMode(m),
+      onkeydown: (e) => { if (/^Arrow(Left|Right|Up|Down)$/.test(e.key)) { e.preventDefault(); setMode(m === 'full' ? 'tools' : 'full'); seg.querySelector('[aria-checked="true"]').focus(); } } })));
+    setMode(saveMode);
+    const doSave = async () => {
       const name = nameIn.value.trim();
       if (!name) { nameIn.focus(); return; }
       if (saving) return;
-      saving = true; saveBtn.disabled = setupBtn.disabled = true; lastErr = '';
+      const setup = saveMode === 'tools';
+      saving = true; saveBtn.disabled = true; lastErr = '';
       try { await T.save(name, setup ? setupOf(ws.getState()) : ws.getState()); toast(setup ? 'Setup saved' : 'Template saved'); }
       catch (e) { lastErr = (e && e.userMessage) || 'Could not save the template.'; console.warn('TradeZoro: template save', e); }
       saving = false; renderTemplates();
     };
-    saveBtn.addEventListener('click', () => doSave(false));
-    setupBtn.addEventListener('click', () => doSave(true));
-    nameIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSave(false); });
-    tplPop.appendChild(el('button', { type: 'button', class: 'stkc-tname stkt-browse', 'aria-label': 'Browse ready-made templates', onclick: () => {
-      setTpl(false);
-      import('./chart-tpl-gallery.js?v=1161').then((m) => m.openGallery({ ws, Pine, afterStructural, setLayout, toast })).catch((e) => { console.warn('TradeZoro: template gallery', e); toast('Could not open the templates.', 'error'); });
-    } }, [el('span', { class: 'stkc-mi-t' }, [el('span', { class: 'stkc-mi-l', text: 'Ready-made templates' }), el('small', { class: 'stkc-mi-s', text: 'Order flow, GEX, dark pool, swing and more. Free to apply.' })]), el('span', { class: 'stkc-tapply', 'aria-hidden': 'true', text: 'Browse' })]));
+    saveBtn.addEventListener('click', doSave);
+    nameIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSave(); });
+    const n = G && G.TEMPLATES ? G.TEMPLATES.length : 0;
+    tplPop.appendChild(el('button', { type: 'button', class: 'stkc-tname stkt-browse', 'aria-label': 'Browse templates' + (n ? ', ' + n + ' ready-made setups' : ''), onclick: () => openTplGallery() }, [
+      el('span', { class: 'stkt-browse-ic', html: icon('<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>') }),
+      el('span', { class: 'stkc-mi-t' }, [el('span', { class: 'stkc-mi-l', text: 'Browse templates' }), el('small', { class: 'stkc-mi-s', text: n ? n + ' ready-made setups \u00b7 free to apply' : 'Ready-made setups \u00b7 free to apply' })]),
+      el('span', { class: 'stkt-browse-chev', html: icon('<path d="M9 6l6 6-6 6"/>') })]));
     tplPop.appendChild(el('p', { class: 'stkc-pop-h', text: 'Save current chart' }));
     tplPop.appendChild(el('div', { class: 'stkc-saverow' }, [nameIn, saveBtn]));
-    tplPop.appendChild(el('div', { class: 'stkc-saverow stkc-saverow-2' }, [setupBtn]));
+    tplPop.appendChild(el('div', { class: 'stkc-tsave-opt' }, [seg, hint]));
     const msg = lastErr || note;
     if (msg) tplPop.appendChild(el('p', { class: 'stkc-err', role: 'status', text: msg }));
 
@@ -1568,6 +1579,17 @@ function legendFold(R) {
     STARTERS.forEach((s) => ul2.appendChild(row(Object.assign({ starter: true }, s), s.id === defId)));
     tplPop.appendChild(ul2);
   }
+  let saveMode = 'full';
+  let galleryP = null;
+  const galleryMod = () => galleryP || (galleryP = import('./chart-tpl-gallery.js?v=1161').catch((e) => { galleryP = null; throw e; }));
+  function openTplGallery(tab){
+    setTpl(false);
+    galleryMod().then((m) => m.openGallery({ ws, Pine, afterStructural, setLayout, toast, tab,
+      myTemplates: () => T.list(), applySaved: (t) => { applyAny(t); toast('Applied "' + t.name + '"'); } }))
+      .catch((e) => { console.warn('TradeZoro: template gallery', e); toast('Could not open the templates.', 'error'); });
+  }
+  // tiny layout glyphs for the starter rows (1, 2-up, 4-up)
+  const LAYOUT_IC = { '1': '<rect x="4" y="5" width="16" height="14" rx="2"/>', '2h': '<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M12 5v14"/>', '4': '<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M12 5v14M4 12h16"/>' };
 
   const STAR = '<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8L3.5 9.7l5.9-.9z"';
   function row(t, isDef){
@@ -1591,8 +1613,10 @@ function legendFold(R) {
       return li;
     }
     const sub = [t.desc, isDef ? 'Default' : ''].filter(Boolean).join(' · ');
+    const lead = t.starter ? el('span', { class: 'stkc-tlead', 'aria-hidden': 'true', html: icon(LAYOUT_IC[t.layout] || LAYOUT_IC['1']) })
+      : el('span', { class: 'stkc-tlead stkc-tini', 'aria-hidden': 'true', text: (String(t.name).trim()[0] || '?').toUpperCase() });
     li.appendChild(el('button', { type: 'button', class: 'stkc-tname', title: 'Apply ' + t.name, 'aria-label': 'Apply ' + t.name,
-      onclick: () => { applyAny(t); setTpl(false); toast('Applied "' + t.name + '"'); } }, [
+      onclick: () => { applyAny(t); setTpl(false); toast('Applied "' + t.name + '"'); } }, [lead,
       el('span', { class: 'stkc-mi-t' }, [el('span', { class: 'stkc-mi-l', text: t.name }), sub ? el('small', { class: 'stkc-mi-s', text: sub }) : null]),
       el('span', { class: 'stkc-tapply', 'aria-hidden': 'true', text: 'Apply' })]));
     const acts = el('span', { class: 'stkc-tacts' });

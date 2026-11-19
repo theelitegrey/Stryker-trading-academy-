@@ -19,6 +19,7 @@
 // from installFootprint()); no feed of its own. TPO needs only the chart's candles (time at price).
 // Depends on: assets/chart-of-pro-data.js (maths). Education only. Not financial advice.
 import { absorptionEvents, levelBreaks, imbalanceZones, tpoProfile, tpoLetter, autoRow, manualRow, effortResult, rthKey, sweepEvents } from './chart-of-pro-data.js?v=1152';
+import { MERGE_INPUTS, mergeGroups, mergeOpts } from './chart-vp-merge.js?v=1152';
 import { drawTpoExtras, drawLabels, steadyW, tpoAnchorX, tpoColX, TPO_EXTRA_INPUTS, extendsRight, ibMsOf } from './chart-tpo-extras.js?v=1152';
 
 export const ABS_TYPE = 'stk_of_abs', IMB_TYPE = 'stk_of_imb', TPO_TYPE = 'stk_of_tpo', EVR_TYPE = 'stk_of_evr', SWP_TYPE = 'stk_of_sweep';
@@ -102,7 +103,7 @@ const TPO_SCHEMA = [
   { key: 'outColor', title: 'Outside value area', type: 'color', defval: TPO_OUT },
   { key: 'pocColor', title: 'POC', type: 'color', defval: MAG },
   { key: 'vaLineColor', title: 'VAH / VAL lines', type: 'color', defval: VA_LN }
-].concat(TPO_EXTRA_INPUTS);
+].concat(MERGE_INPUTS, TPO_EXTRA_INPUTS);
 const EVR_SCHEMA = [
   { key: 'lookback', title: 'Average over (bars)', type: 'int', defval: 20, min: 5, max: 200, step: 1 },
   { key: 'minEffort', title: 'Flag when effort at least (x average)', type: 'float', defval: 1.5, min: 1, max: 10, step: 0.1 },
@@ -378,6 +379,20 @@ function tpoSessions(bars, mode, futures) {
   });
   return out;
 }
+// Merge nearby profiles (off by default): neighbouring sessions become one { k, i0, i1, merged } entry.
+// Overlap is judged on each session's own value area (about 40 rows, the auto row size).
+export function mergeTpoSessions(list, bars, I, tick) {
+  const m = mergeOpts(I);
+  if (m.mode === 'off' || list.length < 2) return list;
+  const vaOf = (k) => {
+    const s = list[k], sb = bars.slice(s.i0, s.i1 + 1);
+    let hi = -Infinity, lo = Infinity;
+    for (const b of sb) { hi = Math.max(hi, b.high); lo = Math.min(lo, b.low); }
+    const row = autoRow(hi - lo, tick, 40), p = tpoProfile(sb, { periodMs: clamp(Math.round(num(I.period, 30)), 5, 120) * 60000, row, va: num(I.va, 70) });
+    return p ? [(p.r0 + p.val) * row, (p.r0 + p.vah + 1) * row] : null;
+  };
+  return mergeGroups(list.length, m, vaOf).map((gr) => (gr.length === 1 ? list[gr[0]] : { k: gr.map((k) => list[k].k).join('+'), i0: list[gr[0]].i0, i1: list[gr[gr.length - 1]].i1, merged: gr.length }));
+}
 function tpoLayer() {
   let canvas = null;
   return {
@@ -399,9 +414,9 @@ function tpoLayer() {
         const tickPx = Math.abs(Y(a, tick) - Y(a, 0));
         const letters0 = I.style !== 'blocks';
         const minRowPx = letters0 ? (phone ? 9 : 11) : 4;
-        const sessKey = 'sess|' + (I.session || 'auto') + '|' + a.bars.length + '|' + a.bars[0].time + '|' + futures;
+        const mo = mergeOpts(I), sessKey = 'sess|' + (I.session || 'auto') + '|' + a.bars.length + '|' + a.bars[0].time + '|' + futures + (mo.mode === 'off' ? '' : '|' + mo.mode + '|' + mo.pct + '|' + mo.count + '|' + a.bars[a.bars.length - 1].close);   // merge on: the forming session can change which sessions merge
         let ss = inst.memo.get('sess');
-        if (!ss || ss.key !== sessKey) { ss = { key: sessKey, list: tpoSessions(a.bars, I.session || 'auto', futures) }; inst.memo.set('sess', ss); }
+        if (!ss || ss.key !== sessKey) { ss = { key: sessKey, list: mergeTpoSessions(tpoSessions(a.bars, I.session || 'auto', futures), a.bars, I, tick) }; inst.memo.set('sess', ss); }
         const top = a.bounds.top, bot = top + a.bounds.height;
         const ext = extendsRight(I), labels = [], W = co.width, ibMs = ibMsOf(I);
         for (const s of ss.list) {
@@ -471,7 +486,7 @@ function tpoLayer() {
           if (x1 - x0 > 90) {
             g.font = '600 ' + (phone ? 9 : 10) + 'px ' + MONO; g.textAlign = 'left'; g.textBaseline = 'bottom'; g.fillStyle = dim();
             const yb = Math.min(bot - 2, Y(a, p.r0 * row) + 14);
-            g.fillText('TPO ' + p.periods + ' x ' + periodMin + 'm  IB ' + fmtK(+(p.ibHi - p.ibLo).toFixed(2)), xL, yb);
+            g.fillText(s.merged ? 'TPO merged ' + s.merged + ' sessions' : 'TPO ' + p.periods + ' x ' + periodMin + 'm  IB ' + fmtK(+(p.ibHi - p.ibLo).toFixed(2)), xL, yb);
           }
           drawTpoExtras(g, xo);
         }

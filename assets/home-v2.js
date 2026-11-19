@@ -9,6 +9,8 @@
 //   4. Sticky verb story (desktop >= 900 px): the step for the current scroll position gets .on. Phone: stacked cards, no JS.
 //   5. Persona tabs: WAI-ARIA tabs (click, arrow keys, Home/End).
 //   6. Ticker tape under the hero: real last price + day change from our own chart sources (see tape() below).
+//   7. Number strip count-up (the numbers themselves are written by tools/home-stats.py).
+//   8. Traders for Traders band: reveal, aurora only while on screen, cursor dot spotlight on desktop.
 // prefers-reduced-motion (html.hv-rm, set in <head>): everything shows in its final state; the story still switches steps.
 // Depends on: assets/home-v2.css. Header/menu/theme come from assets/home-a.js, assets/dl-menu.js + assets/theme.js.
 (function () {
@@ -424,6 +426,37 @@
       window.addEventListener('scroll', onScroll, { passive: true });
       window.addEventListener('resize', onScroll);
       pick();
+    }
+
+    // number strip: count up once on reveal; the final text is what the HTML already says (tools/home-stats.py keeps it true)
+    $$('.hv-stat-row dd').forEach(function (dd) {
+      var txt = dd.textContent, m = /^([\d,]+)(.*)$/.exec(txt.trim());
+      if (!m || !hasIO || root.classList.contains('hv-rm')) return;
+      var to = +m[1].replace(/,/g, ''), tail = m[2], put = function (v) { dd.textContent = Math.round(v).toLocaleString('en-US') + tail; };
+      dd.setAttribute('aria-label', txt.trim()); put(0);
+      var io = new IntersectionObserver(function (es) {
+        if (!es[0].isIntersecting) return; io.disconnect();
+        var t0 = performance.now(), step = function (t) { var p = Math.min(1, (t - t0) / 1400); put(to * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(step); else dd.textContent = txt; };
+        requestAnimationFrame(step);
+      }, { threshold: 0.4 });
+      io.observe(dd);
+    });
+
+    // Traders for Traders band: .in once (word reveal, mark draw, chips), .on while on screen (aurora runs only then),
+    // and on a fine pointer a soft spotlight of brighter dots follows the cursor (transform only, one rAF per move).
+    var t4t = doc.querySelector('[data-hv-t4t]');
+    if (t4t) {
+      once(t4t, 'in', 0.3);
+      if (hasIO) new IntersectionObserver(function (es) { t4t.classList.toggle('on', es[0].isIntersecting); }).observe(t4t); else t4t.classList.add('on');
+      var spot = t4t.querySelector('[data-t4t-spot]'), inner = t4t.querySelector('[data-t4t-spot-in]');
+      if (spot && inner && !root.classList.contains('hv-rm') && window.matchMedia('(hover:hover) and (pointer:fine)').matches) {
+        var mx = 0, my = 0, raf = 0, R = 180;
+        var size = function () { t4t.style.setProperty('--t4t-w', t4t.offsetWidth + 'px'); t4t.style.setProperty('--t4t-h', t4t.offsetHeight + 'px'); };
+        var move = function () { raf = 0; spot.style.transform = 'translate3d(' + (mx - R) + 'px,' + (my - R) + 'px,0)'; inner.style.transform = 'translate3d(' + (R - mx) + 'px,' + (R - my) + 'px,0)'; };
+        t4t.addEventListener('pointerenter', function () { size(); t4t.classList.add('hot'); });
+        t4t.addEventListener('pointerleave', function () { t4t.classList.remove('hot'); });
+        t4t.addEventListener('pointermove', function (e) { var r = t4t.getBoundingClientRect(); mx = e.clientX - r.left; my = e.clientY - r.top; if (!raf) raf = requestAnimationFrame(move); }, { passive: true });
+      }
     }
 
     // persona tabs

@@ -488,6 +488,13 @@ def check_nav_features_menu():
                 fail(f'assets/images/navfx/{fid}-{w}.webp missing (Features menu thumb)')
 
 
+def check_home_stats():
+    """Every number on the homepage strip / Traders for Traders band is still true (tools/home-stats.py)."""
+    r = subprocess.run([sys.executable, os.path.join(ROOT, 'tools', 'home-stats.py'), '--check'], capture_output=True, text=True)
+    if r.returncode != 0:
+        fail('homepage numbers: ' + (r.stdout + r.stderr).strip()[:300])
+
+
 def check_charts_css_subset():
     """assets/style-charts.css (Charts page) is generated from assets/style.css by
     tools/build-charts-css.py; it must be rebuilt whenever style.css or a Charts script changes."""
@@ -793,7 +800,7 @@ def main():
     fast = '--fast' in sys.argv   # static checks only; the browser suites run in GitHub (site-checks.yml)
     browser = [] if fast else [check_app_shell_browser, check_drawer_touch]
     order = [check_desktop_signin, check_pro_features, check_compare_page, check_push_rules, check_metric_alerts, check_phantom, check_days_load, check_finatic, check_workspaces, check_account_sync, check_latency, check_zscript_engine, *browser, check_roadmap_log, check_roadmap_cards,
-             check_nav_features_menu, check_charts_css_subset, check_merge_markers, check_unversioned_assets,
+             check_nav_features_menu, check_home_stats, check_charts_css_subset, check_merge_markers, check_unversioned_assets,
              check_module_import_versions, check_versioned_sources, check_js_syntax, check_html_structure,
              check_css_braces, check_referenced_assets_exist, check_build_markers, check_mobile_width_guards,
              check_assets_changed_without_bump, check_share_images, check_help_center,

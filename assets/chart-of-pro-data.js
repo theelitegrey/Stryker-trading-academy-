@@ -255,6 +255,13 @@ export function firstTouch(bars, from, lo, hi) {
   for (let j = Math.max(0, from); j < bars.length; j++) if (bars[j].low <= hi && bars[j].high >= lo) return j;
   return -1;
 }
+// First bar from `from` on by which price has traded through the whole lo..hi zone (filled), else -1.
+// Price is a continuous path, so the zone is filled once the lowest low since `from` is <= lo and the highest high >= hi.
+export function firstFill(bars, from, lo, hi) {
+  let mn = Infinity, mx = -Infinity;
+  for (let j = Math.max(0, from); j < bars.length; j++) { mn = Math.min(mn, bars[j].low); mx = Math.max(mx, bars[j].high); if (mn <= lo && mx >= hi) return j; }
+  return -1;
+}
 // Initial balance extension prices: IB high + k x range above, IB low - k x range below, per k > 0.
 export function ibExtensions(ibHi, ibLo, mults) {
   const r = ibHi - ibLo;

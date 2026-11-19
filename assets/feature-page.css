@@ -263,3 +263,9 @@ html.fpg-anim .fpg-rv.is-in{ opacity:1; transform:none; }
 /* light theme: screenshot wells stay dark (the captures are dark-theme UI) */
 :root[data-theme="light"] .fpg-device.fp-pad{ background:var(--surface-1); }
 :root[data-theme="light"] .fpg-dots i{ background:var(--line); }
+
+/* charts etc (FEATB, 19 Nov 2026): a 6-tile bento ends on a full-width tile so the last row has no gap */
+@media (min-width:1000px){ .fpg-bento > .fpg-tile:nth-child(6):last-child{ grid-column:1 / -1; } }
+/* journal + backtesting tiles show P&L figures, so each carries a "Sample data" tag on the image */
+.fpg-tile-fig:has(.fpg-tile-tag){ position:relative; }
+.fpg-tile-tag{ position:absolute; top:8px; right:8px; z-index:1; background:color-mix(in srgb, #0b0b0d 70%, var(--gold) 18%); }

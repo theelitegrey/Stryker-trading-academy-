@@ -10,7 +10,6 @@ const stub = require('../tests/stub.js');
 const BASE = process.env.FP_BASE || 'http://127.0.0.1:8097';
 const OUT = process.argv[2] || '/tmp/fpg-out';
 const PAGES = process.argv.slice(3).length ? process.argv.slice(3) : ['gex', 'orderflow'];
-const SECS = ['top', 'problem', 'tour', 'more', 'how', 'list', 'related', 'faq', 'end-h'];
 
 (async () => {
   const b = await launch();
@@ -109,7 +108,8 @@ const SECS = ['top', 'problem', 'tour', 'more', 'how', 'list', 'related', 'faq',
         await p.screenshot({ path: path.join(dir, `full-${tag}.png`), fullPage: true });
         // section shots: hide the fixed app bars so they do not get stitched into tall element captures
         await p.addStyleTag({ content: '.mobile-topnav, .appnav-dock, #site-nav, .cookie-notice, [class*=cookie]{ visibility:hidden !important; }' });
-        for (const id of SECS) {
+        const secs = await p.evaluate(() => [...document.querySelectorAll('main > header[id], main > section[id]')].map((e) => e.id).concat('end-h'));
+        for (const id of secs) {
           const el = await p.$(id === 'end-h' ? '.fpg-final' : '#' + id);
           if (!el) continue;
           await el.scrollIntoViewIfNeeded(); await p.waitForTimeout(250);

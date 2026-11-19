@@ -19,6 +19,7 @@
 // from installFootprint()); no feed of its own. TPO needs only the chart's candles (time at price).
 // Depends on: assets/chart-of-pro-data.js (maths). Education only. Not financial advice.
 import { absorptionEvents, levelBreaks, imbalanceZones, tpoProfile, tpoLetter, autoRow, manualRow, effortResult, rthKey, sweepEvents } from './chart-of-pro-data.js?v=1155';
+import { pinSessions } from './chart-frvp-data.js?v=1155';
 import { MERGE_INPUTS, mergeGroups, mergeOpts } from './chart-vp-merge.js?v=1155';
 import { drawTpoExtras, drawLabels, steadyW, tpoAnchorX, tpoColX, TPO_EXTRA_INPUTS, extendsRight, ibMsOf, hideToday } from './chart-tpo-extras.js?v=1155';
 
@@ -99,6 +100,7 @@ const TPO_SCHEMA = [
   { key: 'va', title: 'Value area %', type: 'int', defval: 70, min: 10, max: 100, step: 1 },
   { key: 'ib', title: 'Initial balance (periods)', type: 'int', defval: 2, min: 1, max: 8, step: 1 },
   { key: 'widthPct', title: 'Width % of the session', type: 'int', defval: 70, min: 10, max: 100, step: 1 },
+  { key: 'alwaysVisible', title: 'Always visible', type: 'bool', defval: false, tooltip: 'Keeps the nearest session on each side drawn at the chart edge when it scrolls off screen.' },
   { key: 'color', title: 'Value area', type: 'color', defval: TPO_IN },
   { key: 'outColor', title: 'Outside value area', type: 'color', defval: TPO_OUT },
   { key: 'pocColor', title: 'POC', type: 'color', defval: MAG },
@@ -393,6 +395,17 @@ export function mergeTpoSessions(list, bars, I, tick) {
   };
   return mergeGroups(list.length, m, vaOf).map((gr) => (gr.length === 1 ? list[gr[0]] : { k: gr.map((k) => list[k].k).join('+'), i0: list[gr[0]].i0, i1: list[gr[gr.length - 1]].i1, merged: gr.length }));
 }
+// Always visible (TPO): pinSessions, but a left pin only when the first session on screen leaves room for it
+// (else the pinned profile would sit on top of the session that already sticks to the left edge).
+export function tpoPins(list, xs, W, phone) {
+  const pin = pinSessions(list, xs, W), want = (phone ? 72 : 132) + 16;
+  for (const [s, v] of pin) {
+    if (v[0] > W / 2) continue;
+    const nx = list[list.indexOf(s) + 1];
+    if (nx && xs(nx)[0] < want) pin.delete(s); else pin.set(s, [8, Math.min(v[1], want - 8)]);
+  }
+  return pin;
+}
 function tpoLayer() {
   let canvas = null;
   return {
@@ -419,8 +432,9 @@ function tpoLayer() {
         if (!ss || ss.key !== sessKey) { ss = { key: sessKey, list: mergeTpoSessions(tpoSessions(a.bars, I.session || 'auto', futures), a.bars, I, tick) }; inst.memo.set('sess', ss); }
         const top = a.bounds.top, bot = top + a.bounds.height;
         const ext = extendsRight(I), labels = [], W = co.width, ibMs = ibMsOf(I);
+        const pin = I.alwaysVisible === true ? tpoPins(ss.list, (s) => [co.logicalToX(s.i0) - ppb / 2, co.logicalToX(s.i1) + ppb / 2], W, phone) : new Map();
         for (const s of ss.list) {
-          if (s.i0 > i1 || (s.i1 < i0 && !ext)) continue;
+          if (!pin.has(s) && (s.i0 > i1 || (s.i1 < i0 && !ext))) continue;
           const sb = a.bars.slice(s.i0, s.i1 + 1);
           let hi = -Infinity, lo = Infinity;
           for (const b of sb) { hi = Math.max(hi, b.high); lo = Math.min(lo, b.low); }
@@ -429,11 +443,13 @@ function tpoLayer() {
           let p = inst.memo.get('tpo|' + s.k);
           if (!p || p.pk !== pk) { p = tpoProfile(sb, { periodMs: periodMin * 60000, row, va: num(I.va, 70), ibPeriods: clamp(Math.round(num(I.ib, 2)), 1, 8), ibMs }); if (!p) continue; p.pk = pk; inst.memo.set('tpo|' + s.k, p); }
           if (hideToday(I, s.i1 >= a.bars.length - 1)) continue;
-          const xs = co.logicalToX(s.i0) - ppb / 2, x1 = co.logicalToX(s.i1) + ppb / 2;
+          let xs = co.logicalToX(s.i0) - ppb / 2, x1 = co.logicalToX(s.i1) + ppb / 2;
+          if (pin.has(s)) [xs, x1] = pin.get(s);   // Always visible: drawn at the chart edge
           if (xs > co.width) continue;
           const x0 = Math.max(xs, 8);   // the session began off-screen: the profile sticks to the left edge
           const xo = { I, bars: a.bars, s, p, periodMs: periodMin * 60000, va: num(I.va, 70), tick, X: (i) => co.logicalToX(i), Y: (v) => Y(a, v), x0, x1, W, pitch: ppb,
             last: s.i1 >= a.bars.length - 1, top, bot, phone, day: light(), labels };
+          if (pin.has(s)) { const rx0 = co.logicalToX(s.i0) - ppb / 2, rx1 = co.logicalToX(s.i1) + ppb / 2; xo.x0 = rx0; xo.x1 = rx1; if (ext) drawTpoExtras(g, xo); xo.x0 = x0; xo.x1 = x1; }   // pinned: its running levels stay where they really are
           if (x1 < 0) { drawTpoExtras(g, xo); continue; }   // off to the left: only its levels still running right
           const maxC = Math.max(...p.counts);
           const span = Math.max(24, (x1 - x0) * clamp(num(I.widthPct, 70), 10, 100) / 100);
@@ -489,7 +505,7 @@ function tpoLayer() {
             const yb = Math.min(bot - 2, Y(a, p.r0 * row) + 14);
             g.fillText(s.merged ? 'TPO merged ' + s.merged + ' sessions' : 'TPO ' + p.periods + ' x ' + periodMin + 'm  IB ' + fmtK(+(p.ibHi - p.ibLo).toFixed(2)), xL, yb);
           }
-          drawTpoExtras(g, xo);
+          if (!pin.has(s)) drawTpoExtras(g, xo);
         }
         drawLabels(g, labels, { W, top, bot, phone, day: light() });
       } finally { g.restore(); }

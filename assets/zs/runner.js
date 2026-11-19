@@ -8,6 +8,8 @@
 //   protected: const pub = await r.session(); ...get sealed from the API...; await r.run({ sealed, bars, ... })
 const WORKER_URL = new URL('./worker.js?v=1145', import.meta.url);
 export const KILL_MS = { run: 25000, update: 8000, compile: 10000 };
+// a fresh worker still has to download the engine (~250 KB): on a slow line that must not count as a runaway script
+export const START_MS = 30000;
 
 function killed(ms) {
   return { ok: false, error: { code: 'E401', severity: 'error', line: 1, col: 1, message: 'The script took longer than ' + Math.round(ms / 1000) + ' seconds and was stopped.', hint: 'Look for a loop that runs too many times.' },
@@ -17,13 +19,14 @@ function killed(ms) {
 export class ZsRunner {
   constructor(opts) {
     this.opts = opts || {};
-    this.w = null; this.seq = 0; this.pending = new Map(); this.hasRun = false;
+    this.w = null; this.seq = 0; this.pending = new Map(); this.hasRun = false; this.ready = false;
   }
   spawn() {
     if (this.w) return this.w;
     const w = new Worker(this.opts.workerUrl || WORKER_URL, { type: 'module', name: 'zscript' });
     w.onmessage = (ev) => {
       const m = ev.data;
+      if (m && m.type === 'ready') { this.ready = true; return; }
       if (m && m.type === 'live') { if (this.opts.onLive) this.opts.onLive(m.out); return; }
       if (m && m.type === 'notice') { if (this.opts.onNotice) this.opts.onNotice(m); return; }
       if (!m || !Number.isInteger(m.id)) return;
@@ -33,13 +36,14 @@ export class ZsRunner {
       if (m.type === 'result') p.resolve(m.out);
       else p.reject(new Error(typeof m.message === 'string' ? m.message : 'Zscript worker error'));
     };
-    w.onerror = (ev) => { ev.preventDefault && ev.preventDefault(); this.reset(new Error('The Zscript worker stopped.')); };
+    // keep the browser's reason when it gives one (a blocked or failed worker script often gives none)
+    w.onerror = (ev) => { ev.preventDefault && ev.preventDefault(); this.reset(new Error('The Zscript worker stopped' + (this.ready ? '' : ' before it started') + (ev && ev.message ? ': ' + ev.message : '.'))); };
     this.w = w;
     return w;
   }
   reset(err) {
     if (this.w) { this.w.terminate(); this.w = null; }
-    this.hasRun = false;
+    this.hasRun = false; this.ready = false;
     for (const [, p] of this.pending) { clearTimeout(p.timer); p.reject(err); }
     this.pending.clear();
   }
@@ -47,12 +51,14 @@ export class ZsRunner {
     const w = this.spawn();
     const id = ++this.seq;
     return new Promise((resolve, reject) => {
+      const started = this.ready;
       const timer = setTimeout(() => {
-        // a runaway script: kill the worker outright (the VM also stops itself at 20 s)
         this.pending.delete(id);
+        if (!this.ready) { this.reset(new Error('stopped')); reject(new Error('The Zscript worker did not start in time.')); return; }
+        // a runaway script: kill the worker outright (the VM also stops itself at 20 s)
         this.reset(new Error('stopped'));
         resolve(type === 'compile' ? { ok: false, diagnostics: [killed(ms).error], program: null, meta: null } : killed(ms));
-      }, ms);
+      }, started ? ms : ms + START_MS);
       this.pending.set(id, { resolve, reject, timer });
       w.postMessage(Object.assign({ type, id }, msg));
     });

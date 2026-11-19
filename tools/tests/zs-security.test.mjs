@@ -41,6 +41,8 @@ t('_headers gives the worker an enforced no-network CSP', () => {
   assert.match(block, /\n\s+Content-Security-Policy: /);
   assert.match(block, /connect-src 'none'/);
   assert.match(block, /default-src 'none'/);
+  // Firefox and Safari check the worker's own load against worker-src: 'none' kills the engine there (member bug 19 Nov)
+  assert.doesNotMatch(block.split('\n').slice(0, 2).join('\n'), /worker-src 'none'/);
 });
 
 // ---------- hostile member text ----------

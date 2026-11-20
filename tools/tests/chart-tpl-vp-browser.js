@@ -34,6 +34,7 @@ const IDS = ['vp-monthly', 'vp-weekly', 'vp-daily', 'gex-flow'];
         if (id === 'vp-daily') { const s = got.ind.find((x) => x[0] === 'stk_svp'); t(z.tag + ' vp-daily: SVP delta bars on', s && s[1].showDelta === true, s); }
         if (id === 'vp-weekly') { const a = got.ind.find((x) => x[0] === 'stk_avwap'); const d = new Date(a && a[1].anchor); t(z.tag + ' vp-weekly: VWAP anchored to a Monday 00:00 UTC in the past', a && d.getUTCDay() === 1 && d.getUTCHours() === 0 && a[1].anchor <= Date.now(), a); }
         // (the monthly anchor is checked in chart-tpl-data.test.mjs: the engine only reports the anchor back while the loaded test bars reach it)
+        if (id === 'vp-monthly' || id === 'vp-weekly') { const d = await p.evaluate(() => window.STRYKER_VELA.context().cells[0].chart.drawings.all().filter((x) => x.type === 'fixedrangevp').map((x) => x.props)); t(z.tag + ' ' + id + ': one range profile with nodes + extended lines', d.length === 1 && d[0].showNodes === true && d[0].extendLines === true, d.map((x) => [x.showNodes, x.extendLines, x.tplId, x.deltaBars])); }
         await p.screenshot({ path: OUT + '/tpl-' + id + '-' + z.tag + '.png' });
       }
       t(z.tag + ': no page errors', errors.length === 0, errors.slice(0, 3));

@@ -38,4 +38,6 @@ const ma = by('vp-monthly').ind.find(([t]) => t === 'stk_avwap')[1]().anchor, md
 assert.ok(md.getUTCDate() === 1 && md.getUTCHours() === 0 && ma <= Date.now(), 'monthly VWAP anchor = the 1st, 00:00 UTC');
 const wa = new Date(by('vp-weekly').ind.find(([t]) => t === 'stk_avwap')[1]().anchor);
 assert.ok(wa.getUTCDay() === 1 && wa.getUTCHours() === 0, 'weekly VWAP anchor = Monday 00:00 UTC');
+for (const id of ['vp-monthly', 'vp-weekly']) { const t = by(id); assert.ok(t.frvp && t.frvp().from <= Date.now(), id + ': range profile starts in the past'); assert.ok(!t.ind.some(([x]) => x === 'vpvr'), id + ': no visible-range profile'); assert.ok(/HVN/.test(t.desc), id + ': desc mentions HVN / LVN'); }
+const dt = by('vp-daily').ind.find(([x]) => x === 'stk_of_tpo')[1]; assert.ok(dt.singles === true && dt.devPoc === true, 'daily: single prints + developing POC on');
 console.log('chart-tpl-data: ok (' + TEMPLATES.length + ' templates)');

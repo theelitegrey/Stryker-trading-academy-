@@ -234,7 +234,7 @@ function paintFrvp(ctx, d, proj, theme) {
   hLine(s.showVah, s.vahColor, s.vahStyle, L.vahY);
   hLine(s.showVal, s.valColor, s.valStyle, L.valY);
   hLine(s.showPoc, s.pocColor ?? ink(theme.background), s.pocStyle, L.pocY);
-  if (s.composite === true && s.showNodes !== false) paintNodes(ctx, theme, L, xe);
+  if (s.showNodes === true || (s.composite === true && s.showNodes !== false)) paintNodes(ctx, theme, L, xe);
   const devW = Math.max(1, lw);
   if (s.showDevelopingPoc) this.strokePolyline(ctx, L.developingPoc, { lineColor: s.developingPocColor, lineWidth: devW, lineStyle: s.developingPocStyle });
   if (s.showDevelopingVa) {
@@ -371,7 +371,7 @@ function extraFields(d) {
   f.push({ path: 'frvpx.alwaysVisible', label: 'Always visible', kind: 'boolean' });
   f.push({ path: 'frvpx.thinRows', label: 'Thin rows', kind: 'boolean' });
   f.push({ path: 'frvpx.composite', label: 'Composite', kind: 'boolean' });   // tooltip text: all loaded bars
-  f.push({ path: 'frvpx.showNodes', label: 'HVN / LVN', kind: 'boolean', when: { path: 'frvpx.composite', in: [true] } });
+  f.push({ path: 'frvpx.showNodes', label: 'HVN / LVN', kind: 'boolean' });
   f.push(a.delta ? { path: 'frvpx.deltaBars', label: 'Delta bars', kind: 'select', options: [{ value: d.frvp.deltaBars || 'off', label: a.delta }] }
     : { path: 'frvpx.deltaBars', label: 'Delta bars', kind: 'select', options: [{ value: 'off', label: 'Off' }, { value: 'left', label: 'Left side' }] });
   if (!a.delta) f.push({ path: 'frvpx.deltaUpColor', label: 'Delta buy', kind: 'color', when: { path: 'frvpx.deltaBars', in: ['left'] } }, { path: 'frvpx.deltaDownColor', label: 'Delta sell', kind: 'color', when: { path: 'frvpx.deltaBars', in: ['left'] } });

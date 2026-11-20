@@ -22,12 +22,12 @@ export const TEMPLATES = [
     symbol: 'futures:NQ1!', tf: '5', ind: [['stk_gex'], ['stk_pdvp'], ['stk_msess'], ['stk_econ']] },
   { id: 'gex-flow', blurb: 'Gamma walls, a net-GEX heatmap and options flow marks on one chart.', name: 'GEX Levels & Options Flow', desc: 'Call and put walls, zero gamma, top open-interest strikes and past days\u2019 levels, a net-GEX heatmap by strike, positive and negative gamma zones shaded, call and put premium marks, fresh option volume and ZoroTide. Price is the candles.',
     symbol: 'futures:NQ1!', tf: '5', ind: [['stk_gex', { showOi: true, oiCount: 5, show0dte: true, showRanked: true, showProfile: true, showRegime: true, showPrev: true, prevDays: 2 }], ['stk_gexheat'], ['stk_zzone'], ['stk_optflow'], ['stk_zvol'], ['stk_tide']] },
-  { id: 'vp-monthly', blurb: 'A month of 1h candles with one volume profile and a monthly VWAP.', name: 'Volume profile: Monthly', desc: 'About a month of 1-hour candles with one composite volume profile over the visible range (POC, value area high and low), VWAP anchored to the start of the month and the previous day\u2019s levels.',
-    symbol: 'futures:NQ1!', tf: '60', view: 30, ind: [['vpvr'], ['stk_avwap', () => ({ anchor: monthStart() })], ['stk_pdvp']] },
-  { id: 'vp-weekly', blurb: 'A week of 30m candles with one volume profile and a weekly VWAP.', name: 'Volume profile: Weekly', desc: 'About a week of 30-minute candles with one composite volume profile over the visible range (POC, value area high and low) and VWAP anchored to the start of the week.',
-    symbol: 'futures:NQ1!', tf: '30', view: 7, ind: [['vpvr'], ['stk_avwap', () => ({ anchor: weekStart() })], ['stk_pdvp']] },
-  { id: 'vp-daily', blurb: 'A volume profile per session with delta, market profile and VWAP.', name: 'Volume profile: Daily', desc: 'One session volume profile per day with delta bars at each price row (order flow, from 8 Oct 2026), a time-price profile with single prints, and session VWAP.',
-    symbol: 'futures:NQ1!', tf: '5', view: 2, ind: [['stk_svp', { session: 'day', showDelta: true }], ['stk_of_tpo'], ['stk_of_vwap']] },
+  { id: 'vp-monthly', blurb: 'A month of 1h candles with one volume profile and a monthly VWAP.', name: 'Volume profile: Monthly', desc: 'About a month of 1-hour candles with one composite volume profile from the 1st (POC, value area high and low, HVN and LVN nodes, extended to the right edge), VWAP anchored to the start of the month and the previous day\u2019s levels.',
+    symbol: 'futures:NQ1!', tf: '60', view: 30, frvp: () => ({ from: monthStart() }), ind: [['stk_avwap', () => ({ anchor: monthStart() })], ['stk_pdvp']] },
+  { id: 'vp-weekly', blurb: 'A week of 30m candles with one volume profile and a weekly VWAP.', name: 'Volume profile: Weekly', desc: 'About a week of 30-minute candles with one composite volume profile from Monday (POC, value area high and low, HVN and LVN nodes, extended to the right edge) and VWAP anchored to the start of the week.',
+    symbol: 'futures:NQ1!', tf: '30', view: 7, frvp: () => ({ from: weekStart() }), ind: [['stk_avwap', () => ({ anchor: weekStart() })], ['stk_pdvp']] },
+  { id: 'vp-daily', blurb: 'A volume profile per session with delta, market profile and VWAP.', name: 'Volume profile: Daily', desc: 'One session volume profile per day with delta bars at each price row (order flow, from 8 Oct 2026), a time-price profile with single prints highlighted and extended, developing POC and value area, and session VWAP.',
+    symbol: 'futures:NQ1!', tf: '5', view: 2, ind: [['stk_svp', { session: 'day', showDelta: true }], ['stk_of_tpo', { singles: true, devPoc: true }], ['stk_of_vwap']] },
   { id: 'options-levels', blurb: 'Expected move, gamma levels and calls vs puts flow on an index ETF.', name: 'Options levels', desc: 'Expected move, gamma levels and calls-vs-puts money flow on an index ETF.',
     symbol: 'IDX:SPY', tf: '15', ind: [['stk_gex'], ['stk_em'], ['stk_tide'], ['stk_optflow']] },
   { id: 'dark-pool', blurb: 'Large off-exchange prints and weekly off-exchange levels on the candles.', name: 'Dark pool watch', desc: 'Large off-exchange prints on the candles plus weekly off-exchange levels and daily share.',
@@ -59,7 +59,7 @@ const NAMES = { vpvr: 'Volume Profile (visible range)', stk_svp: 'Session Volume
   stk_offex: 'Off-exchange Volume', volume: 'Volume', ema: 'EMA', rsi: 'RSI', '52-week-high-low': '52-week high / low', stk_of_tpo: 'Market Profile', stk_avwap: 'Anchored VWAP', stk_depth_heat: 'Depth Heatmap (L2)', stk_fut_walls: 'Liquidity Walls (L2)',
   stk_l2f_fp: 'Footprint (L2)', stk_l2f_vp: 'Volume Profile (L2)', stk_crypto_dom: 'Crypto DOM Heatmap', stk_vbubble: 'Volume Bubbles', supertrend: 'SuperTrend', macd: 'MACD', 'bollinger-bands': 'Bollinger Bands',
   'ttm-squeeze': 'TTM Squeeze', 'average-true-range': 'ATR', vwap: 'VWAP', vpvr: 'Volume Profile', stk_rvol: 'Relative Volume', stk_news: 'News markers', 'pivot-points': 'Pivot Points' };
-export const toolNames = (t) => t.ind.map(([type, inp]) => (NAMES[type] || type) + (type === 'ema' && inp ? ' ' + inp.length : ''));
+export const toolNames = (t) => (t.frvp ? ['Range Volume Profile (nodes)'] : []).concat(t.ind.map(([type, inp]) => (NAMES[type] || type) + (type === 'ema' && inp ? ' ' + inp.length : '')));
 
 // Pro kinds a template contains ('of' | 'gex'), for the card tags.
 export function proKinds(t) {
@@ -80,6 +80,8 @@ export function applyTemplate(t, deps) {
   if (t.symbol) { try { cell.setSymbol(t.symbol); } catch (e) { console.warn('TradeZoro: template symbol', e); } }
   try { cell.setTimeframe(t.tf); } catch (e) { console.warn('TradeZoro: template timeframe', e); }
   try { (cell.chart.indicators() || []).slice().forEach((h) => { try { h.remove(); } catch (e) {} }); } catch (e) {}
+  // range profiles an earlier template drew (tagged tplId) go; the member's own drawings stay
+  try { cell.chart.drawings.all().filter((d) => d.props && d.props.tplId).forEach((d) => cell.chart.drawings.remove(d.id)); } catch (e) {}
   const out = { added: 0, skipped: [] };
   t.ind.forEach(([type, inputs]) => {
     const k = kindOf(type);
@@ -87,6 +89,22 @@ export function applyTemplate(t, deps) {
     try { const inp = typeof inputs === 'function' ? inputs() : inputs; cell.chart.addNativeIndicator(type, inp ? { inputs: inp } : undefined); out.added++; }
     catch (e) { console.warn('TradeZoro: template indicator ' + type, e); }
   });
+  // t.frvp = a range volume profile drawn from a start time to the newest candle (POC, value area, HVN / LVN, lines run on to the right edge). Added once the bars load.
+  if (t.frvp) {
+    let n = 0;
+    const draw = () => { try {
+      const bars = cell.chart.orchestrator.rawBars, last = bars && bars.length && bars[bars.length - 1].time;
+      if (last) {
+        cell.chart.drawings.all().filter((d) => d.props && d.props.tplId).forEach((d) => cell.chart.drawings.remove(d.id));
+        const lo = bars.find((b) => b.time >= t.frvp().from), a = lo ? lo.time : bars[0].time, hi = bars[bars.length - 1];
+        const lows = bars.filter((b) => b.time >= a), pr = [Math.min(...lows.map((b) => b.low)), Math.max(...lows.map((b) => b.high))];
+        const d = cell.chart.drawings.add('fixedrangevp', { paneId: 'price', anchors: [{ time: a, price: pr[0] }, { time: hi.time, price: pr[1] }] });
+        if (d) cell.chart.drawings.update(d.id, { props: Object.assign({}, d.props, { showNodes: true, extendLines: true, deltaBars: 'left', tplId: t.id }) });
+        return;
+      }
+    } catch (e) { console.warn('TradeZoro: template profile', e); return; } if (++n < 15) setTimeout(draw, 500); };
+    setTimeout(draw, 900);
+  }
   // t.view = days of candles to show (so a visible-range profile covers about that span); the bars load after the timeframe change, so retry a few times
   if (t.view) {
     let n = 0;
@@ -121,7 +139,7 @@ export const FILTERS = [
   ['all', 'All', () => true],
   ['of', 'Order flow', (t) => t.ind.some(([x]) => kindOf(x) === 'of')],
   ['gex', 'GEX & options', (t) => t.ind.some(([x]) => kindOf(x) === 'gex' || OPT.includes(x))],
-  ['vp', 'Volume profile', (t) => t.ind.some(([x]) => VP.includes(x))],
+  ['vp', 'Volume profile', (t) => t.frvp || t.ind.some(([x]) => VP.includes(x))],
   ['swing', 'Swing', (t) => t.tf === 'D' || Number(t.tf) >= 60],
   ['scalp', 'Scalping', (t) => t.tf !== 'D' && Number(t.tf) <= 5],
   ['free', 'Free', (t) => !proKinds(t).length],

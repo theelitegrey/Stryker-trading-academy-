@@ -63,6 +63,7 @@
     ['stryker_chart_layout_recent_{uid}', 'layoutRecent', 'chart'],
     ['stryker_ctype_favs', 'chartTypeFavs', 'chart'],
     ['stryker_chart_favbar_orient', 'favToolbarOrient', 'chart'],
+    ['stryker_chart_compact', 'compactLayout', 'chart'],       // Chart settings > Compact layout (assets/chart-compact.js)
     ['stk_legend_open_v1', 'legendOpen', 'chart'],
     ['stryker_script_lang', 'scriptLang', 'chart'],
     ['stk_script_ed_wrap', 'scriptWrap', 'chart'],

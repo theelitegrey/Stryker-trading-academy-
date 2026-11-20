@@ -530,7 +530,10 @@ function ourSections(id){
       { kind: 'select', label: 'Right margin (bars)', id: 'right-bars', options: RIGHT_BARS, get: g('rightBars'), set: st('rightBars') },
       { kind: 'heading', label: 'Toolbars' },
       { kind: 'toggle', label: 'Favorites toolbar', id: 'fav-toolbar', get: favVis, set: setFavVis,
-        title: 'Show or hide the floating favorites toolbar (the drawing tools you starred). Same as right-click on it, or the star at the bottom of the left toolbar.' }
+        title: 'Show or hide the floating favorites toolbar (the drawing tools you starred). Same as right-click on it, or the star at the bottom of the left toolbar.' },
+      { kind: 'heading', label: 'Layout' },
+      { kind: 'toggle', label: 'Compact layout', id: 'compact-layout', get: () => !!(window.STRYKER_COMPACT && window.STRYKER_COMPACT.on), set: (v) => { if (window.STRYKER_COMPACT) window.STRYKER_COMPACT.set(!!v); },
+        title: 'More room for the chart: a slimmer bottom bar, no site header strip (the three icons float in the chart corner), and the menu and market clock join the chart toolbar. Saved for your account.' }
     ].concat(rhRows) }
   ].concat(...(window.__stkExtraSections || []).map((f) => { try { return f(id) || []; } catch (e) { return []; } }));
 }

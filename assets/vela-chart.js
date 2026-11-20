@@ -1283,7 +1283,11 @@ function legendFold(R) {
     // phone: one top bar, footnote in ⓘ, bottom nav behind a handle (assets/chart-phone-space.js)
     .then(() => import('./chart-phone-space.js?v=1167'))
     .then((m) => m.mountPhoneSpace())
-    .catch((e) => console.warn('TradeZoro: phone space', e));
+    .catch((e) => console.warn('TradeZoro: phone space', e))
+    // optional Compact layout (Chart settings > Canvas > Toolbars; off by default; assets/chart-compact.js)
+    .then(() => import('./chart-compact.js?v=1167'))
+    .then((m) => m.mountCompact())
+    .catch((e) => console.warn('TradeZoro: compact layout', e));
   // TradingView-style left drawing column, right icon bar, fullscreen (assets/chart-tv-toolbars.js).
   import('./chart-tv-toolbars.js?v=1167')
     .then((m) => m.mountTvToolbars(ws, { toast }))

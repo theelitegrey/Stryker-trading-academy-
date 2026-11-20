@@ -261,7 +261,33 @@ function quietEngine(R){
 // again when the last indicator of that type leaves. Layers a renderer already has are untouched,
 // so nothing changes for any tool registered before boot (GEX, footprint, delta suite, ...).
 const LAYER_DEFS = new Map();
+// WINDOWS APP IN THE TRAY = NO CHART PAINTS (member GK, 20 Nov: the app uses more GPU/RAM than the browser). The app keeps
+// background throttling off so data, timers and alerts run while it sits in the tray, which also kept every chart
+// repainting (and the GPU keeping its frames) with nobody looking. The app now reports hidden / minimised
+// (desktop/src/shown.js -> tzDesktop.onShown); while hidden, chart frames are held (the highest level asked for is kept)
+// and the first frame after the window shows paints everything at once. Browsers and older app builds: no change.
+let appHidden = false;
+const heldScheds = new Set();
+try {
+  if (typeof window !== 'undefined' && window.tzDesktop && typeof window.tzDesktop.onShown === 'function') window.tzDesktop.onShown((shown) => {
+    appHidden = !shown;
+    if (!shown) return;
+    for (const s of heldScheds) { const lv = s.__stkHeld; s.__stkHeld = 0; try { s.invalidate(lv); } catch (e) {} }
+    heldScheds.clear();
+  });
+} catch (e) {}
+function holdWhenHidden(S){
+  const proto = S && Object.getPrototypeOf(S);
+  if (!proto || proto.__stkHold || typeof proto.invalidate !== 'function') return;
+  proto.__stkHold = true;
+  const invalidate = proto.invalidate;
+  proto.invalidate = function (level) {
+    if (appHidden && level > 0) { if (!(this.__stkHeld >= level)) this.__stkHeld = level; heldScheds.add(this); return; }
+    return invalidate.apply(this, arguments);
+  };
+}
 function lateLayers(R){
+  holdWhenHidden(R && R.scheduler);
   const proto = R && Object.getPrototypeOf(R);
   if (!proto || proto.__stkLateLayers || typeof proto.mountIndicator !== 'function' || typeof proto.removeIndicator !== 'function') return;
   proto.__stkLateLayers = true;

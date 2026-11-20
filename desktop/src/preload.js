@@ -19,7 +19,9 @@ if (location.protocol === 'https:' && (host === 'tradezoro.com' || host === 'www
     // Error('cancelled' | 'timeout' | 'failed' | 'no-browser'). The page then runs signInWithCustomToken(token).
     googleSignIn: () => ipcRenderer.invoke('tz:google').then((r) => ({ token: String(r && r.token || '') }),
       (e) => { const m = /cancelled|timeout|no-browser/.exec(String(e && e.message)); throw new Error(m ? m[0] : 'failed'); }),
-    cancelGoogleSignIn: () => ipcRenderer.send('tz:google-cancel')
+    cancelGoogleSignIn: () => ipcRenderer.send('tz:google-cancel'),
+    // cb(shown): false while the window is hidden in the tray or minimised (src/shown.js); the chart holds its paints
+    onShown: (cb) => { if (typeof cb === 'function') ipcRenderer.on('tz:shown', (e, v) => { try { cb(v === true); } catch (x) {} }); }
   });
   updateBanner();
 }

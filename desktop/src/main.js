@@ -14,6 +14,7 @@ const policy = require('./policy');
 const handoff = require('./handoff');
 const State = require('./state');
 const Updates = require('./updates');
+const reportShown = require('./shown');
 
 const ORIGIN = 'https://tradezoro.com';
 const HOME = ORIGIN + '/dashboard-user.html';
@@ -71,6 +72,7 @@ function makeAppWindow(key, url, def) {
   win.on('resize', remember); win.on('move', remember); win.on('maximize', remember); win.on('unmaximize', remember);
   win.on('page-title-updated', (e, t) => { e.preventDefault(); win.setTitle(titleFor(win, t)); });
   guard(win.webContents, false);
+  reportShown(win);   // charts stop painting while the window is in the tray or minimised
   win.webContents.on('did-finish-load', () => watchNotifications(win));
   win.loadURL(url);
   return win;

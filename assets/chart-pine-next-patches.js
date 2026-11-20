@@ -440,7 +440,42 @@ export function cacheDateTimeFormat(scope){
   return true;
 }
 
+// RAM (member GK, 20 Nov: "1.6-2 GB for one workspace"): pinets 0.11.0's Pine array class builds 43 fresh method
+// closures (this._abs = kc(this.context), ...) in EVERY array's constructor. Scripts that keep arrays per bar/per
+// object (Liquidity Master, SMT, IFVG) held ~97k arrays = 4.2M closures = ~150 MB of the worker's ~285 MB heap on a
+// two-chart layout. Every one of those factories is pure (closes over the context only), so one set per context is
+// the same behaviour: right after an array is built its 43 closures are swapped for the shared set of its context
+// and the fresh ones become garbage. Hooked through the prototype's `context` setter (pinets' code is unmodified).
+const ARR_SHARED = new WeakMap();   // context -> { key: closure }
+export function shareArrayMethods(W){
+  const proto = W && W.prototype;
+  if (!proto || proto.__stkShared || Object.getOwnPropertyDescriptor(proto, 'context')) return false;
+  let keys = null, pending = [], queued = false;
+  const swap = (a) => {
+    const c = a.context;
+    if (!keys) keys = Object.keys(a).filter((k) => k[0] === '_' && typeof a[k] === 'function');
+    let s = ARR_SHARED.get(c);
+    if (!s) { s = {}; for (const k of keys) s[k] = a[k]; ARR_SHARED.set(c, s); return; }
+    for (const k of keys) if (typeof a[k] === 'function') a[k] = s[k];
+  };
+  // the constructor sets `context` before it builds the closures, so the swap for array N runs when array N+1 sets its
+  // context (constructors never nest) or at the end of the task, whichever comes first
+  const flush = () => { queued = false; const l = pending; pending = []; for (const a of l) try { swap(a); } catch (e) {} };
+  Object.defineProperty(proto, 'context', {
+    configurable: true,
+    set(v) {
+      Object.defineProperty(this, 'context', { value: v, writable: true, enumerable: true, configurable: true });
+      if (pending.length) flush();
+      pending.push(this);
+      if (!queued) { queued = true; queueMicrotask(flush); }
+    }
+  });
+  proto.__stkShared = true;
+  return true;
+}
+
 export function patchContext(ctx){
+  try { const a = ctx.pine.array.new_float(0); shareArrayMethods(a && a.constructor); } catch (e) {}
   try { patchSessionPeriods(ctx); } catch (e) {}
   try { patchTimeClose(ctx); } catch (e) {}
   try { patchSessions(ctx); } catch (e) {}

@@ -9,7 +9,7 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node --test test/policy.test.js test/handoff.test.js test/updates.test.js",
+    "test": "node --test test/policy.test.js test/handoff.test.js test/updates.test.js test/shown.test.js",
     "dist:win": "electron-builder --win nsis portable --x64",
     "dist:linux": "electron-builder --linux dir --x64",
     "dist:appx": "electron-builder --win appx --x64"

@@ -34,6 +34,7 @@ async function openPhone(b, opts) {
   const ctx = await b.newContext({ viewport: { width: o.w, height: o.h }, deviceScaleFactor: o.dpr, isMobile: o.w <= 700, hasTouch: o.w <= 700,
     userAgent: o.w <= 700 ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1' : undefined });
   await ctx.addInitScript(stub);
+  if (o.init) await ctx.addInitScript(o.init);   // extra page setup before any page script (e.g. a stand-in app bridge)
   const st = o.seed ? neonState() : null;
   await ctx.addInitScript(([h, th, st, key]) => {
     window.__STK_BOOK_RECORDER = h;

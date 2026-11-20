@@ -167,6 +167,7 @@ type Gap
     float top = na
     float bot = na
     int   bar = na
+    int   t   = na          // open time of the gap's first candle (drawings are placed by time)
 
 type Setup
     int   dir      = 0
@@ -338,6 +339,7 @@ if settled and bar_index > 2
             g.top := gt
             g.bot := gb
             g.bar := bar_index
+            g.t   := time[2]
             array.push(gaps, g)
             if array.size(gaps) > 60
                 array.shift(gaps)
@@ -362,6 +364,7 @@ var float pExt     = na      // wick extreme since the sweep — the stop
 var float gTop     = na
 var float gBot     = na
 var int   gBar     = na
+var int   gT       = na
 var box   candBox  = na
 var string pTfTx   = ""
 
@@ -409,7 +412,8 @@ if settled and array.size(liqs) > 0
                         gTop := g.top
                         gBot := g.bot
                         gBar := g.bar
-                        candBox := box.new(gBar - 2, gTop, bar_index, gBot, border_color = color.new(#787B86, 50), bgcolor = cCandBg)
+                        gT   := g.t
+                        candBox := box.new(gT, gTop, time, gBot, xloc = xloc.bar_time, border_color = color.new(#787B86, 50), bgcolor = cCandBg)
                     else
                         gTop := na
                         gBot := na
@@ -436,12 +440,13 @@ if pDir != 0 and settled
         gTop := g.top
         gBot := g.bot
         gBar := g.bar
+        gT   := g.t
         if not na(candBox)
             box.delete(candBox)
-        candBox := box.new(gBar - 2, gTop, bar_index, gBot, border_color = color.new(#787B86, 50), bgcolor = cCandBg)
+        candBox := box.new(gT, gTop, time, gBot, xloc = xloc.bar_time, border_color = color.new(#787B86, 50), bgcolor = cCandBg)
 
     if not na(candBox)
-        box.set_right(candBox, bar_index)
+        box.set_right(candBox, time)
 
     bool inverted = na(gTop) ? false : pDir == 1 ? close < gBot : close > gTop
     bool timeout  = bar_index - pBar > maxWait
@@ -472,14 +477,14 @@ if pDir != 0 and settled
         st.t1 := bull ? st.entry + risk : st.entry - risk
         st.tp := bull ? st.entry + risk * rrMult : st.entry - risk * rrMult
 
-        st.gapBox := box.new(gBar - 2, gTop, bar_index, gBot, border_color = ifvgBw == 0 ? color.new(bd, 100) : bd, border_width = math.max(ifvgBw, 1), bgcolor = bg)
-        st.lb := label.new(bar_index + 1, (gTop + gBot) / 2, bull ? "▲ +IFVG" : "▼ −IFVG", style = label.style_label_left,
+        st.gapBox := box.new(gT, gTop, time, gBot, xloc = xloc.bar_time, border_color = ifvgBw == 0 ? color.new(bd, 100) : bd, border_width = math.max(ifvgBw, 1), bgcolor = bg)
+        st.lb := label.new(time_close, (gTop + gBot) / 2, bull ? "▲ +IFVG" : "▼ −IFVG", xloc = xloc.bar_time, style = label.style_label_left,
              color = color.new(color.black, 100), textcolor = bull ? lblBull : lblBear, size = f_size(lblSize))
 
         if showRR and risk > 0
-            st.riskBox := box.new(bar_index, bull ? st.entry : st.stop, bar_index, bull ? st.stop : st.entry, border_color = color.new(rrRisk, 100), bgcolor = rrRisk,
+            st.riskBox := box.new(time, bull ? st.entry : st.stop, time, bull ? st.stop : st.entry, xloc = xloc.bar_time, border_color = color.new(rrRisk, 100), bgcolor = rrRisk,
                  text = rrText ? "SL " + str.tostring(st.stop, format.mintick) : "", text_color = color.new(rrRisk, 0), text_size = size.tiny, text_halign = text.align_right, text_valign = bull ? text.align_bottom : text.align_top)
-            st.rewBox := box.new(bar_index, bull ? st.tp : st.entry, bar_index, bull ? st.entry : st.tp, border_color = color.new(rrRew, 100), bgcolor = rrRew,
+            st.rewBox := box.new(time, bull ? st.tp : st.entry, time, bull ? st.entry : st.tp, xloc = xloc.bar_time, border_color = color.new(rrRew, 100), bgcolor = rrRew,
                  text = rrText ? "TP " + str.tostring(st.tp, format.mintick) + "  (" + str.tostring(rrMult, "#.##") + "R)" : "", text_color = color.new(rrRew, 0), text_size = size.tiny, text_halign = text.align_right, text_valign = bull ? text.align_top : text.align_bottom)
 
         array.push(setups, st)
@@ -503,15 +508,15 @@ if array.size(setups) > 0
         bool bull = st.dir == 1
         int age = bar_index - st.bar
         if not na(st.gapBox) and age <= extBars
-            box.set_right(st.gapBox, bar_index)
+            box.set_right(st.gapBox, time)
             if not na(st.lb)
-                label.set_x(st.lb, bar_index + 1)
+                label.set_x(st.lb, time_close)
         if not settled and not st.resolved
             // last bar: only follow price; pass / fail / resolve wait for the settled pass
             if not na(st.rewBox)
-                box.set_right(st.rewBox, bar_index)
+                box.set_right(st.rewBox, time)
             if not na(st.riskBox)
-                box.set_right(st.riskBox, bar_index)
+                box.set_right(st.riskBox, time)
         if settled and not st.resolved and bar_index > st.bar
             bool hitSL = bull ? low <= st.stop : high >= st.stop
             bool hit1  = bull ? high >= st.t1  : low <= st.t1
@@ -526,22 +531,22 @@ if array.size(setups) > 0
                     array.remove(setups, i)
                 else
                     if not na(st.rewBox)
-                        box.set_right(st.rewBox, bar_index)
+                        box.set_right(st.rewBox, time)
                     if not na(st.riskBox)
-                        box.set_right(st.riskBox, bar_index)
+                        box.set_right(st.riskBox, time)
                     if not na(st.lb)
                         label.set_text(st.lb, (bull ? "▲ +IFVG" : "▼ −IFVG") + " · failed")
             else if hitTP or hitSL or age >= rrBars
                 st.resolved := true
                 if not na(st.rewBox)
-                    box.set_right(st.rewBox, bar_index)
+                    box.set_right(st.rewBox, time)
                 if not na(st.riskBox)
-                    box.set_right(st.riskBox, bar_index)
+                    box.set_right(st.riskBox, time)
             else
                 if not na(st.rewBox)
-                    box.set_right(st.rewBox, bar_index)
+                    box.set_right(st.rewBox, time)
                 if not na(st.riskBox)
-                    box.set_right(st.riskBox, bar_index)
+                    box.set_right(st.riskBox, time)
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  WATERMARK

@@ -36,6 +36,11 @@
 //           the max size). Paper: everything (paper-engine.js). LIVE: one stop loss + one take profit per contract is what the server's
 //           guarded route keeps (functions/connect/finatic/order.js), so TP1 and break-even are hidden there with a plain note;
 //           risk sizing still works (capped at the live max).
+// ADVANCED (member feature 2026-11-20, thread 1572249985058082896): the Order tab keeps the SIMPLE ticket by default (side, type,
+//           price, quantity, stop loss, take profit). The "Advanced" switch (prefs.adv, per user, off by default) shows TP1 + break-even,
+//           size from risk, and "Panel layout": where the panel sits (Float | Left | Right | Bottom of the chart; docked modes give the
+//           chart that space, like Dock right) and which account numbers the footer shows (Balance, Equity, Today's P&L, Open P&L;
+//           prefs.ai, none by default). Advanced off = the panel is exactly the simple one again (TP1 / risk are not sent).
 // Tests: tools/tests/chart-live-browser.js (live + member paper, mocked endpoints only), tools/tests/chart-paper-trading-browser.js.
 // Education only. Not financial advice.
 import * as L from './chart-live-core.js?v=1168';
@@ -44,7 +49,7 @@ import { openSource, SOURCES } from './book-panel-sources.js?v=1168';
 import { pairOf } from './book-panel-core.js?v=1168';
 import { futRoot } from './chart-sym.js?v=1168';   // one futures test for every symbol form (CME_MINI:MNQ1!, MNQZ6 ...)
 
-const PHONE_MAX = 700, W_MIN = 352, W_MAX = 640, DW_MIN = 280, DW_MAX = 480, DW_DEF = 340, H_MIN = 300, W_DEF = 360, H_DEF = 640, PRESETS = [10, 25, 50, 100], QUOTE_MAX_AGE = 15000;
+const PHONE_MAX = 700, W_MIN = 352, W_MAX = 640, DW_MIN = 280, DW_MAX = 480, DW_DEF = 340, DH_MIN = 220, DH_MAX = 560, DH_DEF = 300, H_MIN = 300, W_DEF = 360, H_DEF = 640, PRESETS = [10, 25, 50, 100], QUOTE_MAX_AGE = 15000;
 const DISCLAIMER = 'Education only. Not financial advice.';
 const EXCH = { YM: 'CBOT', MYM: 'CBOT', ZB: 'CBOT', ZN: 'CBOT', ZF: 'CBOT', ZT: 'CBOT', ZC: 'CBOT', ZS: 'CBOT', ZW: 'CBOT', CL: 'NYMEX', MCL: 'NYMEX', NG: 'NYMEX', GC: 'COMEX', MGC: 'COMEX', SI: 'COMEX', HG: 'COMEX' };
 const isLocal = /^(127\.0\.0\.1|localhost)$/.test(location.hostname);
@@ -73,6 +78,8 @@ const F = { side: 'buy', type: 'market', qty: '1', price: '', priceKey: '', trai
   sl: { on: false, price: '', ticks: '20', src: 'ticks' }, tp: { on: false, price: '', ticks: '40', src: 'ticks' },
   tp1: { on: false, price: '', ticks: '20', src: 'ticks', size: '1', unit: 'qty' }, be: { on: false, ticks: '0' },
   risk: { on: false, mode: 'usd', v: '' } };
+const MODES = ['float', 'left', 'dock', 'bottom'], MODE_NAME = { float: 'Float', left: 'Left', dock: 'Right', bottom: 'Bottom' };
+const AI = [['bal', 'Balance'], ['eq', 'Equity'], ['day', 'Today’s P&L'], ['up', 'Open P&L']];
 const LIVE_TWO = 'TP1 and break-even are paper only for now. Live orders carry one stop loss and one take profit.';
 
 // ------------------------------------------------------------------------------------------------ prefs (per user)
@@ -81,7 +88,8 @@ function loadPrefs() {
   let p = {}; try { p = JSON.parse(localStorage.getItem(prefKey)) || {}; } catch (e) {}
   prefs = { x: Number.isFinite(p.x) ? p.x : null, y: Number.isFinite(p.y) ? p.y : null, w: clamp(+p.w || W_DEF, W_MIN, W_MAX), h: Math.max(H_MIN, +p.h || H_DEF),
     tab: ['scalp', 'dom', 'order'].includes(p.tab) ? p.tab : 'scalp', min: !!p.min, max: !!p.max, hk: p.hk === true, open: !!p.open,
-    mode: p.mode === 'dock' ? 'dock' : 'float', dw: clamp(+p.dw || DW_DEF, DW_MIN, DW_MAX) };
+    mode: MODES.includes(p.mode) ? p.mode : 'float', dw: clamp(+p.dw || DW_DEF, DW_MIN, DW_MAX), dh: clamp(+p.dh || DH_DEF, DH_MIN, DH_MAX),
+    adv: p.adv === true, ai: Array.isArray(p.ai) ? AI.map((a) => a[0]).filter((k) => p.ai.includes(k)) : [] };
 }
 function savePrefs() { try { localStorage.setItem(prefKey, JSON.stringify(prefs)); } catch (e) {} }
 
@@ -184,15 +192,15 @@ function legSync(c, ref, k) {
   const p = roundTick(ref + dir * t * c.tick, c.tick); g.price = fmtIn(c, p); return p;
 }
 function caps(c) {
-  if (!c.live) return { stop: true, bracket: true, trail: F.type === 'market', two: true, why: '' };
+  if (!c.live) return { stop: true, bracket: true, trail: F.type === 'market', two: !!prefs.adv, why: '' };
   const k = c.lv.caps();
   // live stop loss / take profit: market entries only (the server places them after the fill); never TP1 / break-even (one group)
   const mo = !!k.bracket && F.type !== 'market';
-  return { stop: !!k.stop, bracket: !!k.bracket && !mo, trail: false, two: false, why: mo ? k.marketOnly : k.why };
+  return { stop: !!k.stop, bracket: !!k.bracket && !mo, trail: false, two: false, why: mo ? k.marketOnly : k.why, adv: !!prefs.adv };
 }
 // risk-based size -> { qty, risk, over, capped, amt } | { error } | null (off / not applicable)
 function riskSize(c, k, ref, sl) {
-  if (!F.risk.on || !k.bracket) return null;
+  if (!prefs.adv || !F.risk.on || !k.bracket) return null;   // size from risk is an Advanced option
   if (!F.sl.on || !(sl > 0)) return { error: 'Turn on the stop loss: the size comes from its distance.' };
   const v = num(F.risk.v); if (!(v > 0)) return { error: F.risk.mode === 'pct' ? 'Enter the % of the balance to risk.' : 'Enter the $ amount to risk.' };
   let bal = null;
@@ -314,6 +322,8 @@ function onClick(e) {
   if (t.dataset.inst) { const x = c(); if (P.setTradeSym && x.fam) { P.setTradeSym(x.chartSym, 'futures:' + t.dataset.inst + '1!'); F.priceKey = ''; viewSig = ''; update(); } return; }
   if (t.dataset.unit) { F.tp1.unit = t.dataset.unit; update(); return; }
   if (t.dataset.rmode) { F.risk.mode = t.dataset.rmode; update(); return; }
+  if (t.dataset.wmode) { setMode(t.dataset.wmode); return; }
+  if (t.dataset.ai) { const k = t.dataset.ai, on = !prefs.ai.includes(k); prefs.ai = AI.map((a) => a[0]).filter((x) => (x === k ? on : prefs.ai.includes(x))); savePrefs(); footSig = ''; update(); return; }
   const a = t.dataset.a;
   if (a === 'close') { close(); return; }
   if (a === 'min') { prefs.min = !prefs.min; savePrefs(); viewSig = ''; layout(); update(); return; }
@@ -342,6 +352,7 @@ function onInput(e) {
   else if (f === 'price') F.price = v;
   else if (f === 'trail') F.trail = v;
   else if (f === 'hk') { prefs.hk = v; savePrefs(); }
+  else if (f === 'adv') { prefs.adv = !!v; savePrefs(); footSig = ''; }
   else if (f === 'tp1.size') F.tp1.size = v;
   else if (f === 'be.on') F.be.on = v;
   else if (f === 'be.ticks') F.be.ticks = v;
@@ -394,14 +405,17 @@ function bindResize() {
 }
 // docked: a full-height side panel; the chart (#vela-chart, absolute left/right) gives up the width through margin-right, so it
 // works next to whatever rail panel (Watchlist, News, ...) is open. Desktop / tablet only (phones: the bottom sheet).
-const docked = () => !!(prefs && prefs.mode === 'dock' && !isPhone());
+const docked = () => !!(prefs && prefs.mode !== 'float' && MODES.includes(prefs.mode) && !isPhone());
+// which edge of the chart a docked panel sits on: 'r' (Dock right, the original), 'l' or 'b'
+const dockSide = () => (prefs.mode === 'left' ? 'l' : prefs.mode === 'bottom' ? 'b' : 'r');
 function hostEl() { return document.querySelector('.stkchart-panel'); }
 function applyDock() {
   const h = hostEl(), on = open && docked() && !!h;
   if (h) {
-    const was = h.classList.contains('stkop-docked'), w = h.style.getPropertyValue('--stkop-dw');
-    h.classList.toggle('stkop-docked', on); h.style.setProperty('--stkop-dw', prefs.dw + 'px');
-    if (was !== on || (on && w !== prefs.dw + 'px')) requestAnimationFrame(() => { try { window.dispatchEvent(new Event('resize')); } catch (e) {} });
+    const was = h.classList.contains('stkop-docked'), w = h.style.getPropertyValue('--stkop-dw'), hh = h.style.getPropertyValue('--stkop-dh'), sd0 = h.dataset.stkopSide || '', sd = on ? dockSide() : '';
+    h.classList.toggle('stkop-docked', on); h.style.setProperty('--stkop-dw', prefs.dw + 'px'); h.style.setProperty('--stkop-dh', prefs.dh + 'px');
+    if (sd) h.dataset.stkopSide = sd; else delete h.dataset.stkopSide;
+    if (was !== on || sd0 !== sd || (on && (w !== prefs.dw + 'px' || hh !== prefs.dh + 'px'))) requestAnimationFrame(() => { try { window.dispatchEvent(new Event('resize')); } catch (e) {} });
   }
   const vc = document.getElementById('vela-chart');
   if (on && vc && typeof ResizeObserver === 'function' && !dockRO) { dockRO = new ResizeObserver(() => { if (open && docked()) place(); }); dockRO.observe(vc); dockRO.observe(h); }
@@ -416,18 +430,23 @@ function bindDockResize() {
   const g = el.querySelector('.stkop-dl');
   g.addEventListener('pointerdown', (e) => {
     if (!docked() || e.button !== 0) return;
-    e.preventDefault(); e.stopPropagation(); const w0 = prefs.dw, x0 = e.clientX;
+    e.preventDefault(); e.stopPropagation(); const w0 = prefs.dw, h0 = prefs.dh, x0 = e.clientX, y0 = e.clientY, sd = dockSide();
     g.setPointerCapture(e.pointerId); el.classList.add('sizing');
-    const mv = (ev) => { const w = clamp(Math.round(w0 - (ev.clientX - x0)), DW_MIN, DW_MAX); if (w !== prefs.dw) { prefs.dw = w; layout(); } };
+    const mv = (ev) => {
+      if (sd === 'b') { const h = clamp(Math.round(h0 - (ev.clientY - y0)), DH_MIN, DH_MAX); if (h !== prefs.dh) { prefs.dh = h; layout(); } return; }
+      const w = clamp(Math.round(w0 + (sd === 'l' ? 1 : -1) * (ev.clientX - x0)), DW_MIN, DW_MAX); if (w !== prefs.dw) { prefs.dw = w; layout(); }
+    };
     const up = () => { g.removeEventListener('pointermove', mv); g.removeEventListener('pointerup', up); g.removeEventListener('pointercancel', up); el.classList.remove('sizing'); savePrefs(); update(); };
     g.addEventListener('pointermove', mv); g.addEventListener('pointerup', up); g.addEventListener('pointercancel', up);
   });
 }
-// docked position: right next to the chart's (shrunk) right edge, the chart's full height
+// docked position: in the space the chart gave up (right / left: the chart's full height; bottom: the chart's full width)
 function place() {
   const vc = document.getElementById('vela-chart'), r = vc ? vc.getBoundingClientRect() : null;
   if (!r || !(r.height > 0)) return;
-  const x = Math.round(r.right), y = Math.round(r.top), w = prefs.dw, h = Math.round(r.height);
+  const sd = dockSide();
+  const x = Math.round(sd === 'r' ? r.right : sd === 'l' ? r.left - prefs.dw : r.left), y = Math.round(sd === 'b' ? r.bottom : r.top);
+  const w = sd === 'b' ? Math.round(r.width) : prefs.dw, h = sd === 'b' ? prefs.dh : Math.round(r.height);
   if (el.style.left !== x + 'px') el.style.left = x + 'px';
   if (el.style.top !== y + 'px') el.style.top = y + 'px';
   el.style.width = w + 'px'; el.style.height = h + 'px';
@@ -436,7 +455,7 @@ function layout() {
   if (!el) return;
   const ph = isPhone(), tab = shownTab(), dk = docked();
   el.classList.toggle('is-sheet', ph); el.classList.toggle('is-min', !ph && !dk && prefs.min); el.classList.toggle('is-max', !ph && !dk && prefs.max);
-  el.classList.toggle('is-dock', dk);
+  el.classList.toggle('is-dock', dk); el.classList.toggle('is-dock-l', dk && dockSide() === 'l'); el.classList.toggle('is-dock-b', dk && dockSide() === 'b');
   el.dataset.tab = tab;
   document.documentElement.classList.toggle('stkop-sheet', open && ph);
   applyDock();
@@ -495,6 +514,16 @@ function viewRisk() {
     '<div class="stkop-t1q"><label class="stkop-t1n stkop-rv"><input data-f="risk.v" type="text" inputmode="decimal" autocomplete="off" aria-label="Amount to risk" placeholder="0"><span data-k="runit">USD</span></label><p class="stkop-t1s" data-k="rsum"></p></div>' +
   '</fieldset>';
 }
+// Advanced: where the panel sits + which account numbers the footer shows (both kept per user)
+function viewLayout() {
+  return '<fieldset class="stkop-br stkop-lay" data-leg="lay"><legend class="stkop-vh">Panel layout</legend>' +
+    '<div class="stkop-brh"><span class="stkop-chk">Panel layout</span></div>' +
+    '<div class="stkop-t1q stkop-wpos"><span class="stkop-lbl">Position</span><div class="stkop-seg" role="radiogroup" aria-label="Panel position">' +
+      MODES.map((m) => '<button type="button" role="radio" data-wmode="' + m + '" title="' + (m === 'float' ? 'Float over the chart' : 'Dock to the ' + MODE_NAME[m].toLowerCase() + ' of the chart') + '">' + MODE_NAME[m] + '</button>').join('') + '</div></div>' +
+    '<div class="stkop-ais"><span class="stkop-lbl">Show</span><div class="stkop-aib" role="group" aria-label="Account numbers shown in the panel">' +
+      AI.map((a) => '<button type="button" data-ai="' + a[0] + '" aria-pressed="false">' + esc(a[1]) + '</button>').join('') + '</div></div>' +
+  '</fieldset>';
+}
 function viewOrder(c) {
   return '<form class="stkop-order" novalidate><div class="stkop-oscroll">' +
     '<div class="stkop-sides" role="radiogroup" aria-label="Side"><button type="button" role="radio" class="stkop-side buy" data-side="buy"><b>Buy</b><span>BID <em data-k="bid">—</em></span></button><button type="button" role="radio" class="stkop-side sell" data-side="sell"><b>Sell</b><span>ASK <em data-k="ask">—</em></span></button></div>' +
@@ -503,7 +532,8 @@ function viewOrder(c) {
       '<div class="stkop-f"><span class="stkop-lbl" data-k="plabel">Market price</span><b class="stkop-mkt" data-k="mkt">—</b><input class="stkop-in" data-f="price" type="text" inputmode="decimal" autocomplete="off" aria-label="Order price"></div>' +
       '<div class="stkop-f"><span class="stkop-lbl">Quantity</span>' + stepper(c.fut || c.live ? 'lots' : 'qty') + '</div>' +
     '</div>' +
-    '<div class="stkop-sec dash">' + leg('sl', 'Stop loss', true) + legTp1() + leg('tp', 'Take profit', false) + '<p class="stkop-why" data-k="why" hidden></p>' + viewRisk() + '</div>' +
+    '<div class="stkop-sec dash"><div class="stkop-brh stkop-adv"><label class="stkop-chk"><input type="checkbox" data-f="adv"> Advanced</label><span class="stkop-hint">TP1 + TP2, risk size, layout</span></div>' +
+      leg('sl', 'Stop loss', true) + legTp1() + leg('tp', 'Take profit', false) + '<p class="stkop-why" data-k="why" hidden></p>' + viewRisk() + viewLayout() + '</div>' +
     '<p class="stkop-sum" data-k="sum"></p>' +
   '</div>' +
   '<div class="stkop-go"><p class="stkop-status" role="status" data-k="status"></p><button type="submit" class="stkop-pill stkop-confirm buy" data-k="confirm">Confirm</button><button type="button" class="stkop-pill ghost" data-a="cancel">Cancel</button></div>' +
@@ -561,7 +591,8 @@ function acctLabel(c) {
 }
 function renderFoot(c) {
   const al = acctLabel(c);
-  const sig = JSON.stringify([al.t, al.full, c.live, c.li && c.li.killed, !!P.openTradeMenu]);
+  const ai = prefs.adv ? prefs.ai : [];
+  const sig = JSON.stringify([al.t, al.full, c.live, c.li && c.li.killed, !!P.openTradeMenu, ai]);
   if (footSig === sig) return; footSig = sig;
   footEl.innerHTML =
     '<div class="stkop-fr">' +
@@ -573,7 +604,18 @@ function renderFoot(c) {
       '<span class="stkop-pos" data-k="pos">Flat</span><span class="stkop-pnl" data-k="pnl"></span><span class="stkop-wk" data-k="wk"></span><span class="stkop-sp"></span>' +
       (c.live ? (c.li && c.li.killed ? '<button type="button" class="stkop-b" data-a="killon">Switch live trading on</button>' : '<button type="button" class="stkop-b warn" data-a="kill">Turn off live trading</button>') : '') +
     '</div>' +
+    (ai.length ? '<dl class="stkop-ai" data-n="' + ai.length + '">' + AI.filter((a) => ai.includes(a[0])).map((a) => '<div><dt>' + esc(a[1]) + '</dt><dd data-ai-v="' + a[0] + '">—</dd></div>').join('') + '</dl>' : '') +
     '<p class="stkop-fine" data-k="fine"></p>';
+}
+// footer account numbers (Advanced → Show): paper = the demo account, admins live = the broker summary (numbers only, no names)
+function renderAi() {
+  const n = footEl.querySelectorAll('[data-ai-v]'); if (!n.length) return;
+  const d = P.acctSummary ? P.acctSummary() : null;
+  for (const e of n) {
+    const v = d ? d[e.dataset.aiV] : null, t = money(v, e.dataset.aiV === 'day' || e.dataset.aiV === 'up');
+    if (e.textContent !== t) e.textContent = t;
+    e.className = e.dataset.aiV === 'day' || e.dataset.aiV === 'up' ? (v > 0 ? 'up' : v < 0 ? 'down' : '') : '';
+  }
 }
 
 // one pass: (re)build what changed, then fill every number / state
@@ -600,7 +642,7 @@ export function update() {
     const mx = el.querySelector('[data-a=max]'), mn = el.querySelector('[data-a=min]');
     mx.innerHTML = prefs.max ? ICON.restore : ICON.max; mx.setAttribute('aria-label', prefs.max ? 'Restore the panel size' : 'Expand the panel'); mx.title = prefs.max ? 'Restore' : 'Expand';
     mn.innerHTML = prefs.min ? ICON.open : ICON.min; mn.setAttribute('aria-label', prefs.min ? 'Show the panel' : 'Minimise the panel'); mn.title = prefs.min ? 'Show' : 'Minimise';
-    for (const b of el.querySelectorAll('.stkop-mode')) { const on = b.dataset.a === (dk ? 'dock' : 'float'); b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); }
+    for (const b of el.querySelectorAll('.stkop-mode')) { const on = b.dataset.a === (dk ? prefs.mode : 'float'); b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); }
     requestAnimationFrame(layout);
   }
   renderFoot(c);
@@ -666,8 +708,18 @@ export function update() {
       setVal('tp1.size', F.tp1.size); setVal('be.ticks', F.be.ticks);
     }
     // risk-based size (sets the quantity; the stepper is locked while it is on)
+    const adv = !!prefs.adv;
+    { const ac = form.querySelector('[data-f=adv]'); if (ac) ac.checked = adv; }
+    const lay = form.querySelector('[data-leg=lay]');
+    lay.hidden = !adv;
+    if (adv) {
+      const wp = lay.querySelector('.stkop-wpos'); wp.hidden = isPhone();
+      for (const b of lay.querySelectorAll('[data-wmode]')) { const o2 = b.dataset.wmode === prefs.mode; b.classList.toggle('on', o2); b.setAttribute('aria-checked', String(o2)); }
+      for (const b of lay.querySelectorAll('[data-ai]')) { const o2 = prefs.ai.includes(b.dataset.ai); b.classList.toggle('on', o2); b.setAttribute('aria-pressed', String(o2)); }
+    }
     const rs = riskSize(c, k, ref, sl);
     const rf = form.querySelector('[data-leg=risk]');
+    rf.hidden = !adv;
     { const cb = rf.querySelector('[data-f="risk.on"]'); cb.checked = F.risk.on && k.bracket; cb.disabled = !k.bracket; rf.classList.toggle('na', !k.bracket); rf.classList.toggle('on', F.risk.on && k.bracket);
       for (const b of rf.querySelectorAll('[data-rmode]')) { const o2 = b.dataset.rmode === F.risk.mode; b.classList.toggle('on', o2); b.setAttribute('aria-checked', String(o2)); b.disabled = !(F.risk.on && k.bracket); }
       rf.querySelector('[data-f="risk.v"]').disabled = !(F.risk.on && k.bracket); setVal('risk.v', F.risk.v);
@@ -679,7 +731,7 @@ export function update() {
     for (const b of form.querySelectorAll('.stkop-qty button')) if (rs && !rs.error) b.disabled = true;
     { const qi = form.querySelector('.stkop-qty [data-f=qty]'); if (qi) qi.readOnly = !!(rs && !rs.error); }
     const tr = form.querySelector('[data-f=trail]'); if (tr) { tr.disabled = !(k.trail && F.sl.on); if (tr.disabled) F.trail = false; tr.checked = F.trail; tr.closest('label').title = k.trail ? 'Keeps the stop the same distance behind the best price (simulated)' : c.live ? k.why : 'Trail works on market orders'; }
-    const wh = form.querySelector('[data-k=why]'); const w2 = !k.bracket ? k.why : c.live ? LIVE_TWO : ''; wh.hidden = !w2; if (wh.textContent !== w2) wh.textContent = w2;
+    const wh = form.querySelector('[data-k=why]'); const w2 = !k.bracket ? k.why : c.live && adv ? LIVE_TWO : ''; wh.hidden = !w2; if (wh.textContent !== w2) wh.textContent = w2;
     // risk / reward summary (paper point value; live contract spec)
     const pv = c.live ? (c.li ? c.li.pv : 0) : c.sp.ok ? c.sp.pointValue : 0;
     const qty = cleanQty(c, F.qty), parts = [];
@@ -712,6 +764,7 @@ export function update() {
   const pe = setText('pnl', pnl == null ? '' : money(pnl, true)); if (pe) pe.className = 'stkop-pnl' + (pnl > 0 ? ' up' : pnl < 0 ? ' down' : '');
   setText('wk', wk + ' working');
   const fl = el.querySelector('[data-a=flat]'); if (fl) fl.disabled = c.live ? !c.li || (!c.li.pos.qty && !c.li.working.length) : !(c.a && c.sp.ok && (c.a.position(c.sym) || wk));
+  renderAi();
   setText('fine', c.live ? 'Real orders at your broker. Max 2 contracts. Every attempt is logged. ' + DISCLAIMER : (P.label || 'Paper trading · demo money · simulated fills') + '. ' + DISCLAIMER);
 }
 

@@ -900,6 +900,12 @@ function stripData(){
   const s = acct.summary(dayStart());
   return { bal: s.balance, rp: s.dayPnl, up: s.positions ? s.unrealized : null };
 }
+// order panel footer (Advanced → Show, chart-order-panel.js): balance, equity, today's realized P&L, open P&L of the account in use
+function acctSummary(){
+  const d = stripData(); if (!d) return null;
+  const up = d.up == null ? 0 : d.up;
+  return { bal: d.bal, eq: d.bal == null ? null : PE.round2(d.bal + up), day: d.rp, up };
+}
 const activeCellSym = () => { const c = activeCell(); return c ? c.symbol : ''; };
 function updateStrip(){
   const d = stripData();
@@ -2283,6 +2289,6 @@ export function mountPaper(ws, opts){
   window.__stkPaper = {
     get account(){ return acct; }, get liveAccount(){ return replay ? liveAcct : acct; }, get replay(){ return !!replay; }, get leader(){ return leader; }, get uid(){ return uid; }, setReplay, replayFeed, resetReplayAccount,
     openTicket, openPanel, placeOrder, orderPanel, flattenSym, setTrailing, toast, closePos, reversePos, flattenAll, cancelOrder, poll, pushLines, sendToJournal,
-    ctxAt, ctxOrder, commitDrag, runHotkey, hotkeys: { get: hkMap, set: hkSave }, setLiveHook, get live(){ return liveOn() ? LIVE : null; }, lastPrice: chartLast, renderAll, activeSymbol: () => { const c = activeCell(); return c ? c.symbol : ''; }, tradeSym, setTradeSym, setEnabled: setPaperEnabled, get enabled(){ return paperOn(); }, tradeUi, get tradeUiOn(){ return tradeUiOn(); }, paperOff, symMeta, openTradeMenu: () => openTradeMenu && openTradeMenu(), label: LABEL, toasts: toastLog, get saves(){ return { saves: saveCount, pushes: cloudPushes, busy: cloudBusy, pending: cloudFirstPending }; }
+    ctxAt, ctxOrder, commitDrag, runHotkey, hotkeys: { get: hkMap, set: hkSave }, setLiveHook, get live(){ return liveOn() ? LIVE : null; }, lastPrice: chartLast, renderAll, activeSymbol: () => { const c = activeCell(); return c ? c.symbol : ''; }, tradeSym, setTradeSym, acctSummary, setEnabled: setPaperEnabled, get enabled(){ return paperOn(); }, tradeUi, get tradeUiOn(){ return tradeUiOn(); }, paperOff, symMeta, openTradeMenu: () => openTradeMenu && openTradeMenu(), label: LABEL, toasts: toastLog, get saves(){ return { saves: saveCount, pushes: cloudPushes, busy: cloudBusy, pending: cloudFirstPending }; }
   };
 }

@@ -90,7 +90,7 @@
     ['stryker_chart_alerts_paused', 'alertsPaused', 'trade'],
     ['stryker_chart_alerts_ind', 'indicatorAlerts', 'trade'],
     ['stryker_paper_hotkeys_{uid}', 'paperHotkeys', 'trade'],  // mirror of the paper account's hotkeys (chart-paper.js)
-    ['stryker_op_{uid}', 'orderPanel', 'trade', { omit: ['x', 'y', 'w', 'h', 'min', 'max', 'open', 'mode', 'dw'] }],
+    ['stryker_op_{uid}', 'orderPanel', 'trade', { omit: ['x', 'y', 'w', 'h', 'min', 'max', 'open', 'mode', 'dw', 'dh'] }],
     ['stryker_paper_ui', 'paperPanel', 'trade', { omit: ['open', 'h'] }],
     ['stryker_posorders_ui', 'posOrders', 'trade', { omit: ['h'] }]
   ];

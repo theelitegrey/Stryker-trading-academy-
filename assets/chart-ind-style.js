@@ -329,6 +329,24 @@ function indexOf(orch, rec){
 }
 function loadDefaults(){ try { return JSON.parse(localStorage.getItem(DEFAULTS_KEY) || '{}') || {}; } catch (e) { return {}; } }
 function saveDefaults(d){ try { localStorage.setItem(DEFAULTS_KEY, JSON.stringify(d)); } catch (e) {} }
+// ── presets (named inputs + style per indicator, this browser) ──────────────
+// { [identity]: [{ n: name, v: inputs, p: props, s: style }] }. Applying sets the open indicator's inputs and style.
+export const PRESETS_KEY = 'stryker.indstyle.presets';
+export const PRESET_MAX = 30;
+export function loadPresets(k){ try { const a = (JSON.parse(localStorage.getItem(PRESETS_KEY) || '{}') || {})[k]; return Array.isArray(a) ? a.filter((x) => x && typeof x.n === 'string') : []; } catch (e) { return []; } }
+function writePresets(k, list){ try { const all = JSON.parse(localStorage.getItem(PRESETS_KEY) || '{}') || {}; if (list.length) all[k] = list; else delete all[k]; localStorage.setItem(PRESETS_KEY, JSON.stringify(all)); return true; } catch (e) { return false; } }
+const plain = (o) => { const r = {}; Object.keys(o || {}).forEach((x) => { const v = o[x]; if (['string', 'number', 'boolean'].includes(typeof v)) r[x] = v; }); return r; };
+// Same name (any case) replaces the old preset. Returns the new list, or null when the name is empty / storage is full.
+export function savePreset(k, name, data){
+  const n = String(name || '').trim().slice(0, 40);
+  if (!n) return null;
+  const list = loadPresets(k).filter((x) => x.n.toLowerCase() !== n.toLowerCase());
+  if (list.length >= PRESET_MAX) return null;
+  list.push({ n, v: plain(data.v), p: plain(data.p), s: sanitize(data.s) || undefined });
+  list.sort((a, b) => a.n.localeCompare(b.n));
+  return writePresets(k, list) ? list : null;
+}
+export function deletePreset(k, name){ const list = loadPresets(k).filter((x) => x.n !== name); writePresets(k, list); return list; }
 export function sanitize(st){
   if (!st || typeof st !== 'object') return null;
   const out = {};
@@ -538,6 +556,23 @@ const CSS = `
 .stk-is-tfr input[type=number]{width:56px;height:28px;border-radius:8px;border:1px solid var(--vela-border-strong,rgba(128,128,128,.35));background:transparent;color:inherit;font:inherit;padding:0 6px}
 .stk-is-tfr .stk-is-tfn{min-width:80px;flex:0 0 auto;font-weight:600}
 html.stk-day .stk-is-sel{background-color:#fff}
+.stk-ps{position:fixed;overflow:auto;z-index:2147483000;box-sizing:border-box;width:280px;max-width:calc(100vw - 24px);padding:16px;border-radius:16px;background:var(--vela-bg,#131316);color:var(--vela-fg-bright,#e6e9ef);border:1px solid var(--vela-border-strong,rgba(128,128,128,.35));box-shadow:0 8px 24px rgba(0,0,0,.4);font:400 13px/18px -apple-system,BlinkMacSystemFont,"SF Pro Text",Roboto,"Segoe UI",system-ui,sans-serif}
+.stk-ps h4{margin:0;font-size:15px;line-height:22px;font-weight:600}
+.stk-ps-sub{margin:2px 0 12px;font-size:12px;line-height:16px;color:var(--vela-fg-muted,#8b93a7)}
+.stk-ps-list{margin:0 0 12px;padding:0;max-height:176px;overflow:auto;scrollbar-width:thin;scrollbar-color:rgba(128,128,128,.35) transparent}
+.stk-ps-list::-webkit-scrollbar{width:6px}.stk-ps-list::-webkit-scrollbar-thumb{background:rgba(128,128,128,.35);border-radius:6px}.stk-ps-list::-webkit-scrollbar-thumb:hover{background:rgba(128,128,128,.6)}.stk-ps-list::-webkit-scrollbar-track{background:transparent}.stk-ps-list::-webkit-scrollbar-button{display:none}
+.stk-ps-row{display:flex;align-items:center;gap:4px;height:40px}
+.stk-ps-row button{font:inherit;color:inherit;background:transparent;border:0;cursor:pointer;border-radius:8px}
+.stk-ps-apply{flex:1 1 auto;min-width:0;height:100%;padding:0 8px;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stk-ps-apply:hover,.stk-ps-del:hover{background:var(--vela-hover,rgba(128,128,128,.12))}
+.stk-ps-del{flex:none;display:inline-grid;place-items:center;width:32px;height:32px;padding:0;color:var(--vela-fg-muted,#8b93a7)!important}
+.stk-ps-empty{margin:0 0 12px;font-size:12px;line-height:16px;color:var(--vela-fg-muted,#8b93a7)}
+.stk-ps-save{display:flex;align-items:center;gap:8px}
+.stk-ps-name{flex:1 1 auto;min-width:0;box-sizing:border-box;height:40px;padding:0 12px;border-radius:12px;border:1px solid var(--vela-border-strong,rgba(128,128,128,.35));background:transparent;color:inherit;font:inherit;font-size:14px}
+.stk-ps-go{flex:none;height:40px;padding:0 16px;border-radius:12px;border:0;background:#03c988;color:#04140e;font:600 14px/20px inherit;font-family:inherit;cursor:pointer}
+.stk-ps-go:hover{background:#4fe3ac}
+.stk-ps button:focus-visible,.stk-ps-name:focus-visible,.stk-ps-btn:focus-visible{outline:2px solid #03c988;outline-offset:2px}
+@media (max-width:700px){ .stk-ps-row{height:44px} .stk-ps-del{width:44px;height:44px} .stk-ps-name,.stk-ps-go{height:44px} .stk-ps-name{font-size:16px} }
 .vela-ind-dialog .vela-dialog-footer button{white-space:nowrap}
 @media (max-width:700px){ .stk-is{padding:8px 10px 12px} .stk-is-r > span:first-child{min-width:80px} .stk-is-p{height:32px;min-width:34px} .stk-is-sel{height:34px;max-width:150px} .stk-is-gh{min-height:44px} }
 `;
@@ -771,7 +806,84 @@ function inject(dlg){
   wireReset();
   tabsRow.style.overflowX = 'auto'; tabsRow.style.scrollbarWidth = 'none';
   dlg.__stkStyleSnap = { orch, rec, style: getStyle(orch, rec) };
+  try { addPresetsButton(dlg, orch, rec); } catch (e) { console.warn('TradeZoro: presets', e); }
   if (dlg.__stkOpenTab) { const t = mine.find((m) => m.kind === dlg.__stkOpenTab); dlg.__stkOpenTab = null; if (t) t.tab.click(); }
+}
+// "Presets" button in the settings window footer: save this indicator's inputs + style under a name, apply it on any chart, delete it.
+let psPop = null;
+function closePs(){ if (psPop) { psPop.remove(); psPop = null; document.removeEventListener('pointerdown', psAway, true); } }
+function psAway(e){ if (psPop && !psPop.contains(e.target) && !(e.target.closest && e.target.closest('.stk-ps-btn'))) closePs(); }
+function applyPreset(dlg, orch, rec, pr){
+  const row = dlg.row; if (!row) return;
+  const snap = dlg.snapshot, propSnap = dlg.propSnapshot, keep = dlg.__stkStyleSnap;
+  const set = (list, bag, vals, prop) => (list || []).forEach((d) => {
+    if (d.key === 'ver' || !(d.key in vals) || bag[d.key] === vals[d.key]) return;
+    bag[d.key] = vals[d.key];
+    try { dlg.host.onChange({ indicatorId: row.id, key: d.key, value: vals[d.key], ...(prop ? { kind: 'prop' } : {}) }); } catch (e) {}
+  });
+  set(row.inputs, row.values, pr.v || {}, false);
+  set(row.props, row.propValues || {}, pr.p || {}, true);
+  setStyle(orch, rec, pr.s ? clone(pr.s) : null);
+  dlg.open(row);   // rebuild so every control shows the new values (same move as Reset)
+  if (snap) dlg.snapshot = snap;
+  if (propSnap) dlg.propSnapshot = propSnap;
+  if (keep) dlg.__stkStyleSnap = keep;
+}
+function openPresets(dlg, orch, rec, anchor){
+  closePs(); ensureCss();
+  const k = identity(rec);
+  const pop = psPop = h('div', 'stk-ps'); pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Presets');
+  const head = h('h4'); head.textContent = 'Presets';
+  const sub = h('p', 'stk-ps-sub'); sub.textContent = 'Inputs and style of this indicator.';
+  const listEl = h('div', 'stk-ps-list');
+  const empty = h('p', 'stk-ps-empty'); empty.textContent = 'No presets yet. Name the current look below to save it.';
+  const input = h('input', 'stk-ps-name'); input.placeholder = 'Preset name'; input.maxLength = 40; input.setAttribute('aria-label', 'Preset name');
+  const go = h('button', 'stk-ps-go'); go.type = 'button'; go.textContent = 'Save';
+  const draw = () => {
+    listEl.textContent = '';
+    const list = loadPresets(k);
+    empty.hidden = !!list.length; listEl.hidden = !list.length;
+    list.forEach((pr) => {
+      const r = h('div', 'stk-ps-row'); r.dataset.name = pr.n;
+      const a = h('button', 'stk-ps-apply'); a.type = 'button'; a.textContent = pr.n; a.title = 'Apply ' + pr.n;
+      a.addEventListener('click', () => { applyPreset(dlg, orch, rec, pr); closePs(); });
+      const d = h('button', 'stk-ps-del'); d.type = 'button'; d.setAttribute('aria-label', 'Delete preset ' + pr.n);
+      d.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+      d.addEventListener('click', () => { deletePreset(k, pr.n); draw(); });
+      r.append(a, d); listEl.appendChild(r);
+    });
+  };
+  const save = () => {
+    const row = dlg.row; if (!row) return;
+    const st = getStyle(orch, rec);
+    const list = savePreset(k, input.value, { v: row.values, p: row.propValues, s: st });
+    if (!list) { input.setAttribute('aria-invalid', 'true'); input.placeholder = input.value.trim() ? 'Preset list is full' : 'Type a name first'; input.focus(); return; }
+    input.removeAttribute('aria-invalid'); input.value = ''; input.placeholder = 'Saved'; draw();
+  };
+  go.addEventListener('click', save);
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); save(); } if (e.key === 'Escape') { e.preventDefault(); closePs(); } e.stopPropagation(); });
+  const sv = h('div', 'stk-ps-save'); sv.append(input, go);
+  pop.append(head, sub, empty, listEl, sv);
+  draw();
+  // the window follows the CHART's theme (tokens live on its panel, not on body): carry them over
+  const panelCs = getComputedStyle(dlg.uiDialog.panel);
+  ['--vela-bg', '--vela-fg-bright', '--vela-fg-muted', '--vela-border-strong', '--vela-hover'].forEach((t) => { const v = panelCs.getPropertyValue(t); if (v) pop.style.setProperty(t, v); });
+  pop.style.colorScheme = panelCs.colorScheme;
+  document.body.appendChild(pop);
+  const r = anchor.getBoundingClientRect(), W = pop.offsetWidth;
+  pop.style.left = Math.max(12, Math.min(window.innerWidth - W - 12, r.left)) + 'px';
+  pop.style.bottom = Math.max(12, window.innerHeight - r.top + 8) + 'px';   // grows upward, never over the footer buttons
+  pop.style.maxHeight = (r.top - 20) + 'px';
+  setTimeout(() => document.addEventListener('pointerdown', psAway, true), 0);
+}
+function addPresetsButton(dlg, orch, rec){
+  const foot = dlg.uiDialog && dlg.uiDialog.panel && dlg.uiDialog.panel.querySelector('.vela-dialog-footer');
+  if (!foot || foot.querySelector('.stk-ps-btn')) return;
+  const reset = foot.firstElementChild; if (!reset) return;
+  const b = reset.cloneNode(false); b.classList.add('stk-ps-btn'); b.textContent = 'Presets'; b.type = 'button';
+  b.setAttribute('aria-haspopup', 'dialog'); b.style.marginRight = 'auto'; reset.style.marginRight = '0';
+  b.addEventListener('click', () => (psPop ? closePs() : openPresets(dlg, orch, rec, b)));
+  reset.after(b);
 }
 function patchDialogProto(dlg){
   const proto = dlg && Object.getPrototypeOf(dlg);
@@ -791,7 +903,7 @@ function patchDialogProto(dlg){
     const s = this.__stkStyleSnap;
     this.__stkStyleSnap = null;
     try { if (s) { const now = JSON.stringify(getStyle(s.orch, s.rec)); if (now !== JSON.stringify(s.style)) setStyle(s.orch, s.rec, s.style); } } catch (e) {}
-    closePop();
+    closePop(); closePs();
     return origRevert.apply(this, arguments);
   };
   const origReset = proto.resetToDefaults;
@@ -800,7 +912,7 @@ function patchDialogProto(dlg){
     return origReset.apply(this, arguments);
   };
   const origClose = proto.close;
-  if (typeof origClose === 'function') proto.close = function (){ closePop(); return origClose.apply(this, arguments); };
+  if (typeof origClose === 'function') proto.close = function (){ closePop(); closePs(); return origClose.apply(this, arguments); };
   return true;
 }
 

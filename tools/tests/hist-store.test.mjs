@@ -73,6 +73,12 @@ const B = await import(ROOT + '/functions/api/chart/_bars.js');
   assert.deepEqual(arr(src, 'DEEP_ROOTS'), arr(bs, 'DEEP_SYMS'));
   assert.equal(+/DEEP_DEPTH_DAYS = (\d+)/.exec(src)[1] * 86400, 366 * 86400);
   assert.ok(/DEEP_DEPTH_S = 366 \* D/.test(bs));
+  // every deep symbol is loaded by the first-load script AND kept fresh by the top-up service (GC/CL were listed but never loaded:
+  // member GK, 18 Nov, 15m stopped at 59 days)
+  for (const f of ['install.sh', 'tz-hist-topup.service']) {
+    const t = fs.readFileSync(ROOT + '/tools/hist/' + f, 'utf8'), got = new Set([...t.matchAll(/--symbols ([A-Z,]+)/g)].flatMap((m) => m[1].split(',')));
+    for (const s of arr(bs, 'DEEP_SYMS')) assert.ok(got.has(s), f + ' loads ' + s);
+  }
   assert.equal(/export const DEEP_HISTORY = (\w+)/.exec(src)[1], /export let DEEP_HISTORY = (\w+)/.exec(bs)[1], 'page and server switch agree');
   const ui = fs.readFileSync(ROOT + '/workers/book-recorder/src/hist-store.js', 'utf8') + fs.readFileSync(ROOT + '/assets/chart-history-pager.js', 'utf8');
   assert.ok(!/tick-?stream|insight/i.test(ui.replace(/\/\/.*$/gm, '')), 'no vendor name in code paths');

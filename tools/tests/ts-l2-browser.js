@@ -103,7 +103,8 @@ async function setNQ(p) {
     const ws = window.STRYKER_VELA; ws.active.setSymbol('futures:NQ1!'); ws.active.setTimeframe('1');
     for (let i = 0; i < 80; i++) { await new Promise((r) => setTimeout(r, 300)); const c = ws.chart; if (c.market.symbol === 'futures:NQ1!' && c.orchestrator.rawBars.length > 50) break; }
     const rb = ws.chart.orchestrator.rawBars; const last = rb[rb.length - 1], px = last && (last.close != null ? last.close : last.c);
-    if (px > 20000 && Math.abs(px - 28750) < 3000) window.__L2MID = px;
+    // any NQ-sized price (the old +-3000 window around 28750 broke on 20 Nov 2026 when the replayed NQ drifted to 25.4k and the fixture book ended 3.3k pts off the candles)
+    if (px > 15000 && px < 40000) window.__L2MID = px;
     window.__L2READY = 1;
   });
   await sleep(800);

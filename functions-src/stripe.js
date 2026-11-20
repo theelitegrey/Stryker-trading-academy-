@@ -21,7 +21,10 @@
  *       invoice.payment_failed       recorded + the member is told; access runs
  *                                    to paidThroughMillis while Stripe retries
  *       customer.subscription.updated / .deleted
- *                                    autopay on/off; the daily
+ *                                    autopay on/off; .deleted voids the
+ *                                    sub's OPEN invoices (no retries after a
+ *                                    cancel); a cancel while past_due ends the
+ *                                    sub now + voids; the daily
  *                                    subscriptionSweep lapses the account
  *                                    naturally after paidThroughMillis + grace
  *   stripePortal (callable) opens a Billing Portal session (update card,
@@ -871,6 +874,8 @@ async function onInvoiceFailed(inv) {
   if (!subId) return 'ignored: no subscription';
   const rec = await subRecord(subId, invSubMeta(inv));
   if (!rec) return 'unknown subscription';
+  // Safety net: a retry on a subscription we already know is cancelled is voided, not left retrying.
+  if (rec.status === 'canceled' && !rec.pending) return 'subscription canceled: ' + await voidOpenInvoices(subId, rec.uid);
   if (rec.addon) {
     if (rec.ref && !rec.pending) await rec.ref.set({ lastPaymentFailedAt: admin.firestore.FieldValue.serverTimestamp(), lastFailedInvoice: inv.id }, { merge: true });
     const mk = db.collection('stripeInvoices').doc(inv.id + '_failed_' + (inv.attempt_count || 1));
@@ -895,8 +900,68 @@ async function onInvoiceFailed(inv) {
   return 'failure recorded (attempt ' + (inv.attempt_count || 1) + ')';
 }
 
+// ---- ended subscriptions never keep retrying (Owner billing bug, 20 Nov 2026) --------------------------
+// A renewal invoice stays OPEN after its subscription is cancelled, and Stripe kept retrying the member's
+// card for days. When a subscription ends we void its open invoices. Voiding only closes an unpaid invoice:
+// it never charges, refunds or changes an amount, and only status:'open' invoices are touched (never paid).
+// Needs "Invoices: Write" on the restricted key; a failure is logged + an admin To-do row, never thrown.
+async function billingAlert(id, text, extra) {
+  console.error('BILLING ALERT', id, text);
+  await db.collection('adminTasks').doc('billing_' + String(id).replace(/[^A-Za-z0-9_-]/g, '_')).set(Object.assign({
+    text, kind: 'billing_alert', source: 'stripeWebhook', createdBy: null,
+    createdAt: admin.firestore.FieldValue.serverTimestamp()
+  }, extra || {}), { merge: true }).catch((e) => console.error('billing alert write failed', id, e.message));
+}
+const errTag = (e) => [e && e.stripeStatus, e && e.stripeCode, e && e.message].filter(Boolean).join(' ');
+
+async function voidOpenInvoices(subId, uid) {
+  let list;
+  try { list = await stripe('GET', 'invoices', { subscription: subId, status: 'open', limit: 100 }); }
+  catch (e) {
+    await billingAlert('void_list_' + subId, 'Stripe: could not list open invoices of ended subscription ' + subId +
+      ' (' + errTag(e) + '). Void any open invoice of this subscription in the Stripe dashboard so the card is not retried.',
+    { subscriptionId: subId, uid: uid || null, error: errTag(e) });
+    return 'void list failed';
+  }
+  let voided = 0, failed = 0;
+  for (const inv of (list && list.data) || []) {
+    if (inv.status !== 'open' || invSubId(inv) !== subId) continue;   // never a paid / draft / other invoice
+    try { await stripe('POST', 'invoices/' + inv.id + '/void'); voided++; }
+    catch (e) {
+      failed++;
+      await billingAlert('void_' + inv.id, 'Stripe: could not void open invoice ' + inv.id + ' of ended subscription ' + subId +
+        ' (' + errTag(e) + '). Stripe will keep retrying the card: void it in the Stripe dashboard.',
+      { subscriptionId: subId, invoiceId: inv.id, uid: uid || null, error: errTag(e) });
+    }
+  }
+  return 'voided ' + voided + (failed ? ', void failed ' + failed : '');
+}
+
+// Cancelled while past due: end it now (no retries on a cancelled plan) and void the unpaid renewal.
+async function endPastDueSub(sub, uid) {
+  try { await stripe('DELETE', 'subscriptions/' + sub.id, { prorate: 'false', invoice_now: 'false' }); }
+  catch (e) {
+    if (!(e.stripeStatus === 404 || e.stripeCode === 'resource_missing')) {
+      await billingAlert('cancel_' + sub.id, 'Stripe: member cancelled past-due subscription ' + sub.id +
+        ' but cancelling it now failed (' + errTag(e) + '). Cancel it and void its open invoice in the Stripe dashboard.',
+      { subscriptionId: sub.id, uid: uid || null, error: errTag(e) });
+    }
+  }
+  return voidOpenInvoices(sub.id, uid);
+}
+
 async function onSubscriptionChanged(sub, deleted) {
   const rec = await subRecord(sub.id, sub.metadata || {});
+  const meta = sub.metadata || {};
+  let voidNote = '';
+  if (deleted) voidNote = '; ' + await voidOpenInvoices(sub.id, (rec && rec.uid) || meta.uid);
+  else if (['past_due', 'unpaid'].includes(sub.status) && (sub.cancel_at_period_end || sub.cancel_at)) {
+    voidNote = '; ended past-due, ' + await endPastDueSub(sub, (rec && rec.uid) || meta.uid);
+  }
+  return (await subscriptionAccess(sub, deleted, rec)) + voidNote;
+}
+
+async function subscriptionAccess(sub, deleted, rec) {
   if (!rec) return 'unknown subscription';
   const autopay = !deleted && !sub.cancel_at_period_end &&
     ['active', 'trialing', 'past_due'].includes(sub.status);
@@ -1030,4 +1095,4 @@ exports.stripeStatus = functions
   });
 
 // Not a function (the loader ignores it): for the offline tests.
-exports.__stripeInternals = { formEncode, verifySignature, handleEvent, baseUsdFor, STRIPE_VERSION, grantLiveData, geoRefuse, geoSignalsForSub };
+exports.__stripeInternals = { voidOpenInvoices, formEncode, verifySignature, handleEvent, baseUsdFor, STRIPE_VERSION, grantLiveData, geoRefuse, geoSignalsForSub };

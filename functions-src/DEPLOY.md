@@ -123,6 +123,9 @@ Deploy by name only:
 LIVE key = a restricted key with Write on Checkout Sessions, Customers, Products,
 Prices, Coupons, Customer portal and Webhook Endpoints (the last only for the one-time endpoint
 creation), and Read on Subscriptions, Invoices and Events. Test plan: tools/stripe/TEST-PLAN.md.
+Since 20 Nov 2026 it also needs Write on Invoices (stripeWebhook voids the OPEN invoices of an ended
+subscription so Stripe stops retrying the card) and Write on Subscriptions (a cancel while past_due is
+ended at once). Without them the webhook still answers 200 and writes an adminTasks billing_* row.
 Stripe Tax is OFF (a legal/tax decision for the Owner).
 
 ## Admin analytics snapshot (adminStats), added 2026-09-28 (NOT deployed yet)

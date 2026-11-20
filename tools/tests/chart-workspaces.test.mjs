@@ -132,4 +132,36 @@ ok(C.serialize(big) === null, 'oversized index not serialized');
   ok(C.wsDocIds(ix).includes('ZZZZZZZZZZ0000000003') && C.sanitize(C.serialize(ix)).hid.includes('ZZZZZZZZZZ0000000003'), 'a deleted workspace doc stays hidden from layouts');
   ok(C.sanitize({ items: [{ id: 'wabcdef1', name: 'a' }], hid: ['../x', 'ABCDEFGHIJ0000000009'] }).hid.join() === 'ABCDEFGHIJ0000000009', 'hid: bad ids dropped');
 }
+
+// merge (bug 20 Nov: two windows on one account, Workspace-1 and Workspace-2 open at the same time)
+{
+  const D1 = 'AAAAAAAAAA0000000001', D2 = 'AAAAAAAAAA0000000002', D3 = 'AAAAAAAAAA0000000003', L2 = 'LLLLLLLLLL0000000002';
+  const mk = (t, items, active) => C.sanitize({ t, active, items });
+  const w1 = { id: 'wone00001', name: 'MNQ_01', wsDoc: D1, u: 10 }, w2 = { id: 'wtwo00002', name: 'MNQ_02', wsDoc: D2, u: 10 };
+  // window X (older list) never saw workspace 3, window Y (newer) added it: X's copy must not drop it
+  const X = mk(100, [w1, Object.assign({}, w2, { wsDoc: null })], 'wone00001');
+  const Y = mk(200, [w1, Object.assign({}, w2, { layoutId: L2, layoutName: 'Two layout', u: 150 }), { id: 'wthree003', name: 'MNQ_03', wsDoc: D3, u: 190 }], 'wtwo00002');
+  const m = C.merge(X, Y, 'wone00001');
+  ok(m.items.map((x) => x.name).join() === 'MNQ_01,MNQ_02,MNQ_03', 'merge keeps a workspace only the other window has');
+  ok(m.active === 'wone00001', 'merge keeps this window on its own workspace');
+  ok(m.items[1].wsDoc === D2 && m.items[1].layoutId === L2, 'merge never drops a chart doc id; newer change wins');
+  ok(C.sanitize(C.serialize(m)).items[2].u === 190, 'per-workspace change time survives a round trip');
+  // this window's open workspace keeps ITS layout, even when the other copy is newer
+  const X2 = mk(100, [Object.assign({}, w1, { layoutId: 'MMMMMMMMMM0000000001', layoutName: 'Mine' }), w2], 'wone00001');
+  const Y2 = mk(300, [Object.assign({}, w1, { layoutId: null, name: 'Renamed', u: 250 }), w2], 'wtwo00002');
+  const m2 = C.merge(X2, Y2, 'wone00001');
+  ok(m2.items[0].name === 'Renamed' && m2.items[0].layoutId === 'MMMMMMMMMM0000000001', 'open workspace: newer rename taken, own layout kept');
+  // a workspace changed later in the OLDER list still wins for that workspace
+  const X3 = mk(100, [w1, Object.assign({}, w2, { name: 'Newest name', u: 400 })], 'wone00001');
+  ok(C.merge(X3, mk(200, [w1, w2], 'wone00001'), 'wone00001').items[1].name === 'Newest name', 'per-workspace: the copy changed last wins');
+  // deleted in one window -> stays deleted after merging the other's older list
+  const d = C.sanitize({ t: 500, active: 'wone00001', items: [w1, w2, { id: 'wthree003', name: 'MNQ_03', wsDoc: D3 }] });
+  C.remove(d, 'wthree003');
+  const m4 = C.merge(d, Y, 'wone00001');
+  ok(!C.find(m4, 'wthree003') && m4.gone.includes('wthree003') && C.sanitize(C.serialize(m4)).gone.includes('wthree003'), 'a deleted workspace does not come back from the other list');
+  ok(C.merge(null, Y, 'x') === Y && C.merge(X, null, 'x') === X, 'merge with nothing');
+  // this window's workspace was deleted elsewhere -> active moves to an open one
+  const m5 = C.merge(mk(100, [w1, w2], 'wtwo00002'), Object.assign(mk(200, [w1], 'wone00001'), { gone: ['wtwo00002'] }), 'wtwo00002');
+  ok(m5.active === 'wone00001' && m5.items.length === 1, 'own workspace deleted in another window -> an open one becomes active');
+}
 console.log('ALL PASS');

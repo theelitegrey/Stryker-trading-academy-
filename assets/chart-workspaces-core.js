@@ -59,7 +59,8 @@ function cleanItem(x){
     pinned: x.pinned === true,
     closed: x.closed === true,   // closed tab: kept saved, listed under "Closed workspaces", reopened from the menu
     color: COLORS.includes(x.color) ? x.color : '',
-    glyph: GLYPHS.includes(x.glyph) ? x.glyph : ''
+    glyph: GLYPHS.includes(x.glyph) ? x.glyph : '',
+    u: Number.isFinite(+x.u) && +x.u > 0 ? Math.round(+x.u) : 0   // when a window last changed this workspace (merge() picks the newer)
   };
 }
 
@@ -76,6 +77,9 @@ export function migrate(x){
 // (+ `hid`: the docs of deleted workspaces, kept in the account but still not layouts)
 export const wsDocIds = (ix) => (ix && Array.isArray(ix.items) ? ix.items.map((x) => x.wsDoc).filter(Boolean).concat(Array.isArray(ix.hid) ? ix.hid : []) : []);
 export const HID_MAX = 60;
+// `gone`: ids of DELETED workspaces, so a merge with another window's / device's older list does not bring them back
+export const GONE_MAX = 60;
+const cleanGone = (a) => [...new Set((Array.isArray(a) ? a : []).filter((x) => ID_RE.test(String(x || ''))))].slice(-GONE_MAX);
 const cleanHid = (a) => [...new Set((Array.isArray(a) ? a : []).filter((x) => LID_RE.test(String(x || ''))))].slice(-HID_MAX);
 
 // Untrusted (localStorage / Firestore) -> a valid index, or null when nothing usable is in it.
@@ -94,7 +98,7 @@ export function sanitize(raw){
   if (items.every((x) => x.closed)) items[0].closed = false;   // never a screen with no open workspace
   const active = (items.find((x) => x.id === o.active && !x.closed) || items.find((x) => !x.closed)).id;
   pinFirst(items);
-  return { v: 1, active, items, def: seen.has(o.def) ? o.def : '', t: Number.isFinite(+o.t) ? +o.t : 0, hid: cleanHid(o.hid) };
+  return { v: 1, active, items, def: seen.has(o.def) ? o.def : '', t: Number.isFinite(+o.t) ? +o.t : 0, hid: cleanHid(o.hid), gone: cleanGone(o.gone) };
 }
 // pinned tabs always sit left (stable: order inside each group is kept)
 export function pinFirst(items){
@@ -138,7 +142,7 @@ export function setDefault(ix, id){ ix.def = ix.def === id ? '' : (find(ix, id) 
 
 export function fresh(name, layout){
   const id = newId();
-  return { v: 1, active: id, def: '', t: 0, hid: [], items: [cleanItem({ id, name: cleanName(name) || 'Workspace 1', wsDoc: null, layoutId: layout ? layout.id : null, layoutName: layout ? layout.name : '', shared: !!(layout && layout.shared), panels: null, sub: '' })] };
+  return { v: 1, active: id, def: '', t: 0, hid: [], gone: [], items: [cleanItem({ id, name: cleanName(name) || 'Workspace 1', wsDoc: null, layoutId: layout ? layout.id : null, layoutName: layout ? layout.name : '', shared: !!(layout && layout.shared), panels: null, sub: '' })] };
 }
 
 export const find = (ix, id) => ix.items.find((x) => x.id === id) || null;
@@ -175,6 +179,7 @@ export function remove(ix, id){
   if (ix.active === id && openItems(ix).length <= 1) return false;
   const [gone] = ix.items.splice(i, 1);
   if (gone.wsDoc) ix.hid = cleanHid((ix.hid || []).concat(gone.wsDoc));   // its chart doc stays in the account, still not a layout
+  ix.gone = cleanGone((ix.gone || []).concat(gone.id));                    // a merge with an older list must not bring it back
   if (ix.def === id) ix.def = '';
   if (ix.active !== id) return null;
   const open = openItems(ix), next = (open.find((x) => ix.items.indexOf(x) >= i) || open[open.length - 1]).id;
@@ -222,8 +227,44 @@ export function pickNewer(local, remote){
   return (remote.t || 0) > (local.t || 0) ? remote : local;
 }
 
+// Two windows / devices on one account each hold a copy of the list (bug 20 Nov: Workspace-1 and Workspace-2 open at the same
+// time). Writing one copy over the other lost the other window's new workspaces and their chart doc ids, so on the next
+// start those workspaces opened empty or with another workspace's chart. Merge instead of replace:
+//   - every workspace either copy has is kept, except ids deleted in either (gone);
+//   - a workspace in both copies takes the copy changed last (item.u; a tie goes to the newer list); for `keep` (the workspace THIS window has open) the layout
+//     open in it and its own doc id stay this window's, and it stays open;
+//   - a chart doc id (wsDoc) is never dropped: when the chosen copy has none, the other copy's is used;
+//   - order: the newer copy's order, then the other copy's extra workspaces at the end. Active = `keep` when present.
+// Returns a new index (inputs untouched).
+export function merge(local, remote, keep){
+  if (!remote) return local; if (!local) return remote;
+  const newer = (remote.t || 0) > (local.t || 0) ? remote : local, older = newer === remote ? local : remote;
+  const gone = new Set(cleanGone([].concat(local.gone || [], remote.gone || [])));
+  const byL = new Map(local.items.map((x) => [x.id, x])), byR = new Map(remote.items.map((x) => [x.id, x]));
+  const byNew = newer === local ? byL : byR;
+  const items = [], seen = new Set();
+  const take = (id) => {
+    if (seen.has(id) || gone.has(id) || items.length >= MAX) return;
+    const l = byL.get(id), r = byR.get(id);
+    const base = l && r ? ((r.u || 0) > (l.u || 0) ? r : (l.u || 0) > (r.u || 0) ? l : byNew.get(id)) : (l || r), other = base === l ? r : l;
+    const it = Object.assign({}, base, { panels: cleanPanels(base.panels) });
+    if (id === keep && l) Object.assign(it, { layoutId: l.layoutId, layoutName: l.layoutName, shared: l.shared, closed: false, wsDoc: l.wsDoc || it.wsDoc });
+    if (!it.wsDoc && other && other.wsDoc) it.wsDoc = other.wsDoc;
+    seen.add(id); items.push(it);
+  };
+  newer.items.forEach((x) => take(x.id));
+  older.items.forEach((x) => take(x.id));
+  if (!items.length) return local;
+  pinFirst(items);
+  if (items.every((x) => x.closed)) items[0] = Object.assign({}, items[0], { closed: false });
+  const act = items.find((x) => x.id === keep) || items.find((x) => x.id === newer.active && !x.closed) || items.find((x) => !x.closed);
+  const ids = new Set(items.map((x) => x.id));
+  return { v: 1, active: act.id, items, def: ids.has(newer.def) ? newer.def : '',
+    t: Math.max(local.t || 0, remote.t || 0), hid: cleanHid([].concat(local.hid || [], remote.hid || [])), gone: [...gone] };
+}
+
 export function serialize(ix){
-  const s = JSON.stringify({ v: 1, active: ix.active, def: ix.def || '', t: ix.t || 0, items: ix.items, hid: cleanHid(ix.hid) });
+  const s = JSON.stringify({ v: 1, active: ix.active, def: ix.def || '', t: ix.t || 0, items: ix.items, hid: cleanHid(ix.hid), gone: cleanGone(ix.gone) });
   return s.length <= INDEX_MAX ? s : null;
 }
 

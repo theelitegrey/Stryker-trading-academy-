@@ -117,6 +117,7 @@ export function mountWorkspaces(ws, o){
     lsSet(K.scr(), id); const w = () => { try { ws.persistNow && ws.persistNow(); } catch (e) {} }; w(); setTimeout(w, 900); };
   const docs = C.lru(C.CACHE_N);      // workspace id -> chart document (instant switching)
   const wsQ = new Map();              // workspace id -> its running own-doc save (saves of one workspace run in order)
+  const known = new Map();            // workspace id -> its own doc as this window last saved or read it (JSON)
   let ix = null, busy = null, want = null, remoteT = null;
   // Every tab has its own id. The engine's saved screen (vela-workspace) is ONE per browser, so a tab may only trust it
   // when it was the last tab to change it; otherwise (another tab wrote it) it restores its own snapshot / workspace doc.
@@ -128,7 +129,8 @@ export function mountWorkspaces(ws, o){
     // signed out (or never saved as a layout) a new tab has nothing else to open this workspace from
     const it = cur(); if (it && (!user() || !it.wsDoc)) lsSet(K.doc(it.id), screenState()); };
   let wsT = null;   // the workspace's own doc autosave (the layout menu's autosave only covers a real layout)
-  try { ws.on('state:changed', () => { stampMe(); clearTimeout(snapT); snapT = setTimeout(snapNow, 800);
+  let editN = 0, quietTill = 0;   // changes made in this window (recheck() only replaces a screen nobody touched)
+  try { ws.on('state:changed', () => { if (Date.now() > quietTill) editN++; stampMe(); clearTimeout(snapT); snapT = setTimeout(snapNow, 800);
     clearTimeout(wsT); wsT = setTimeout(() => { if (ix && !busy && !L.viewing && !safe() && user()) saveWs(cur(), screenState()); }, WS_SAVE_MS); }); } catch (e) {}
 
   // ---------------------------------------------------------------- state
@@ -153,6 +155,7 @@ export function mountWorkspaces(ws, o){
     if (!user() || safe() || L.viewing) return Promise.resolve();
     const p = (wsQ.get(it.id) || Promise.resolve()).then(async () => {
       const id = await L.wsWrite(it.wsDoc, st, { name: it.name, ws: it.id });
+      if (id) known.set(it.id, JSON.stringify(st));
       if (id && id !== it.wsDoc) { it.wsDoc = id; persist(); }
       if (!id) lsSet(K.doc(it.id), st);
     }).catch(() => { lsSet(K.doc(it.id), st); });
@@ -160,16 +163,77 @@ export function mountWorkspaces(ws, o){
     p.finally(() => { if (wsQ.get(it.id) === p) wsQ.delete(it.id); });
     return p;
   }
-  function persist(){
-    ix.t = Date.now();
+  // Each workspace in the list carries `u` = when a window last changed it. Two windows (two tabs, the Windows app next to a
+  // browser, two computers) each hold a copy of the list; copies are MERGED per workspace (C.merge), never written over each
+  // other, so a workspace added, renamed or given its chart doc in one window is not lost by the other (bug 20 Nov).
+  const seenSig = new Map();   // workspace id -> its fields as last written / read here
+  const itemSig = (x) => JSON.stringify(Object.assign({}, x, { u: 0, sub: '' }));
+  function stampItems(){
+    const now = Date.now();
+    ix.items.forEach((x) => { const g = itemSig(x); if (seenSig.get(x.id) !== g) { if (seenSig.has(x.id) || !x.u) x.u = now; seenSig.set(x.id, g); } });
+  }
+  const seed = () => { seenSig.clear(); ix.items.forEach((x) => seenSig.set(x.id, itemSig(x))); };
+  const listSig = (o) => (o ? JSON.stringify([o.items.map((x) => Object.assign({}, x, { sub: '' })), o.def || '', (o.gone || []).slice().sort()]) : '');
+  function writeLocal(){
     const s = C.serialize(ix);
     if (s) { try { localStorage.setItem(K.ix(), s); } catch (e) {} }
     try { sessionStorage.setItem(K.tab(), ix.active); } catch (e) {}
+    syncWsUrl();
+    return s;
+  }
+  // take another copy of the list (another tab's, the account's) into this window; this window's open workspace stays open
+  function absorb(r, save){
+    if (!r) return false;
+    stampItems();
+    const was = ix.active, m = C.merge(ix, r, was);
+    if (listSig(m) === listSig(ix)) return false;
+    ix = m; seed(); if (save) writeLocal(); else syncWsUrl(); paint();
+    if (ix.active !== was) showActive();   // this window's workspace was deleted in another window
+    return true;
+  }
+  // the screen follows ix.active without saving the one being left (it no longer exists)
+  async function showActive(){
+    const it = cur(); let r;
+    try { r = await load(it); } catch (e) { r = { doc: defaultDoc(), meta: null }; }
+    if (ix.active !== it.id) return;
+    L.adopt(r.doc, r.meta); syncLayout(it); docs.set(it.id, r.doc); markScreen(it.id); stampMe(); persist();
+  }
+  function persist(){
+    ix.t = Date.now();
+    stampItems();
+    // another tab of this browser may have written the shared list since: merge, never overwrite it
+    const other = C.sanitize(lsGet(K.ix()));
+    if (other) { const m = C.merge(ix, other, ix.active); if (listSig(m) !== listSig(ix)) { ix = m; seed(); } }
+    const s = writeLocal();
     paint();
     if (!user() || !s || !remoteRead) return;   // never push before the account copy is read: a new device would overwrite it
     clearTimeout(remoteT);
-    remoteT = setTimeout(() => remoteRef().set({ index: s, updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
-      .catch((e) => console.warn('TradeZoro: workspaces sync', e && e.code)), REMOTE_MS);
+    remoteT = setTimeout(push, REMOTE_MS);
+  }
+  // account copy: read, merge, write (another window or device may have changed it since this one last read it)
+  let pushing = null;
+  async function push(){
+    if (!user() || !remoteRead) return;
+    if (pushing) { await pushing.catch(() => {}); }
+    pushing = (async () => {
+      try { const d = await remoteRef().get(); absorb(d && d.exists ? C.sanitize((d.data() || {}).index) : null, true); }
+      catch (e) { console.warn('TradeZoro: workspaces sync', e && e.code); }
+      const s = C.serialize(ix); if (!s) return;
+      await remoteRef().set({ index: s, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    })().catch((e) => console.warn('TradeZoro: workspaces sync', e && e.code)).finally(() => { pushing = null; });
+    return pushing;
+  }
+  // The address keeps this window's workspace (?w=<id>): a reopened browser tab or Windows app window (both restore the
+  // address) opens ITS workspace, not whichever one another window used last. Not in a single-workspace window (solo).
+  function syncWsUrl(){
+    if (soloId || !ix) return;
+    try {
+      if (!/^\/charts(\.html)?(\/[^/]+)?\/?$/.test(location.pathname)) return;
+      const u = new URL(location.href);
+      if (u.searchParams.get('w') === ix.active) return;
+      u.searchParams.set('w', ix.active);
+      history.replaceState(history.state, '', u.pathname + u.search + u.hash);
+    } catch (e) {}
   }
   const remoteRef = () => firebase.firestore().collection('students').doc(user().uid).collection('chartPrefs').doc('workspaces');
   function defaultDoc(){
@@ -197,12 +261,15 @@ export function mountWorkspaces(ws, o){
     if (wsQ.has(it.id)) await wsQ.get(it.id);
     const c = docs.get(it.id);
     const meta = metaOf(it);   // the real layout open in it (or none): the layout menu tracks that one, never the workspace doc
-    if (c) return { doc: JSON.parse(JSON.stringify(c)), meta };   // a copy: applyState must never alter the cached one
+    if (c) return { doc: JSON.parse(JSON.stringify(c)), meta, cached: true };   // a copy: applyState must never alter the cached one
+    if (user() && !it.wsDoc && L.wsFind) {   // a list written by an older window lost this workspace's doc id: find the doc by its workspace id
+      try { const id = await L.wsFind(it.id); if (id) { it.wsDoc = id; setTimeout(persist, 0); } } catch (e) {}
+    }
     if (user() && it.wsDoc) {
-      try { const r = await L.fetchDoc(it.wsDoc); if (r) return { doc: r.doc, meta }; } catch (e) { console.warn('TradeZoro: workspace doc', e); }
+      try { const r = await L.fetchDoc(it.wsDoc); if (r) { known.set(it.id, JSON.stringify(r.doc)); return { doc: r.doc, meta }; } } catch (e) { console.warn('TradeZoro: workspace doc', e && e.code); }
     }
     if (user() && it.layoutId) {   // older workspace with a real layout and no own doc yet: open that layout
-      try { const r = await L.fetchDoc(it.layoutId); if (r) return r; } catch (e) { console.warn('TradeZoro: workspace layout', e); }
+      try { const r = await L.fetchDoc(it.layoutId); if (r) return r; } catch (e) { console.warn('TradeZoro: workspace layout', e && e.code); }
     }
     const d = lsGet(K.doc(it.id));
     if (d && typeof d === 'object') return { doc: d, meta: null };
@@ -227,6 +294,7 @@ export function mountWorkspaces(ws, o){
       let r;
       try { r = await load(to); } catch (e) { r = { doc: defaultDoc(), meta: null }; }
       if (ix.active !== to.id) return;            // deleted / switched meanwhile
+      quietTill = Date.now() + 1500;
       L.adopt(r.doc, r.meta);
       syncLayout(to);
       docs.set(to.id, r.doc);
@@ -234,12 +302,27 @@ export function mountWorkspaces(ws, o){
       if (!isPhone()) applyPanels(to.panels);
       persist();
       announce(to.name);
+      if (r.cached) recheck(to, r.doc);
     })();
     try { await busy; } finally { busy = null; }
     if (want && want !== ix.active) { const w = want; want = null; return switchTo(w); }
     want = null;
   }
 
+  // A workspace shown from this window's memory may have been changed since in ANOTHER window (Workspace-1 and Workspace-2
+  // open at the same time, then one window switches to the other's workspace). Its own doc is read once: when it holds a
+  // different chart than the one this window last saved there, and nothing was changed here meanwhile, that chart is shown,
+  // so this window never saves its old copy back over the other window's work.
+  async function recheck(it, shownDoc){
+    if (!user() || !it.wsDoc || safe() || L.viewing || !known.has(it.id)) return;
+    const at = editN;
+    let r = null; try { r = await L.fetchDoc(it.wsDoc); } catch (e) { return; }
+    if (!r || !r.doc || ix.active !== it.id || editN !== at || L.viewing) return;
+    const got = JSON.stringify(r.doc);
+    if (got === known.get(it.id) || got === JSON.stringify(shownDoc)) return;   // what this window wrote / shows: nothing new
+    known.set(it.id, got);
+    L.adopt(r.doc, metaOf(it)); docs.set(it.id, r.doc); markScreen(it.id); stampMe(); snapNow();
+  }
   // a new / duplicated workspace opens at once; signed in, its own doc is saved straight away (not a layout)
   async function openNew(name, doc){
     if (soloId) { toast('This window shows one workspace. Add workspaces in your main window.'); return; }
@@ -743,11 +826,7 @@ export function mountWorkspaces(ws, o){
   // THIS tab's active workspace, so our next persist() does not write a stale copy over its changes.
   window.addEventListener('storage', (e) => {
     if (!ix || e.key !== K.ix() || !e.newValue) return;
-    const r = C.sanitize(e.newValue);
-    if (!r || r.t <= ix.t || !C.find(r, ix.active)) return;
-    const here = C.find(r, ix.active), mine = cur();
-    Object.assign(here, { layoutId: mine.layoutId, layoutName: mine.layoutName, shared: mine.shared, closed: false, wsDoc: here.wsDoc || mine.wsDoc });
-    r.active = ix.active; ix = r; paint();
+    absorb(C.sanitize(e.newValue));
   });
 
   // ---------------------------------------------------------------- boot
@@ -758,6 +837,17 @@ export function mountWorkspaces(ws, o){
   // tab used on workspace 2 would reopen on whatever another tab left active. The tab's own choice wins.
   let tabId = null; try { tabId = sessionStorage.getItem(K.tab()); } catch (e) {}
   if (saved && tabId && C.find(ix, tabId)) ix.active = tabId;
+  // A browser that restores its tabs, and the Windows app (it reopens every chart window at its last address), start with
+  // no tab memory: the address says which workspace the window had open (?w=<id>, kept up to date by syncWsUrl).
+  const urlW = new URLSearchParams(location.search).get('w');
+  if (saved && !(tabId && C.find(ix, tabId)) && urlW && C.find(ix, urlW)) ix.active = urlW;
+  // The address names a saved layout (/charts/<ID>: a reopened window shows the layout that was open in it). That layout
+  // belongs to the workspace it was open in: open THAT workspace, never put it into whichever workspace another window used
+  // last (bug 20 Nov: workspace 2's layout reopened inside workspace 1 and its autosave then wrote it over workspace 1).
+  const linkLay = L.fromLink && L.current ? L.current.id : (user() ? L.linkWant || null : null);   // (linkWant: the address's layout, also when it could not be read)
+  const ownerOf = (o, id) => (!o || !id ? null : (C.find(o, o.active) && C.find(o, o.active).layoutId === id ? C.find(o, o.active) : o.items.find((x) => x.layoutId === id) || null));
+  const owner = saved ? ownerOf(ix, linkLay) : null;
+  if (owner) { ix.active = owner.id; owner.closed = false; }
   // The engine's saved screen and the open layout are also shared per browser. When they were last written for another
   // workspace than the one opening now, they are NOT this workspace's chart: restore its own document instead of
   // treating the screen as its own (that is how workspace 2 ended up showing, and then saving over, workspace 1).
@@ -773,7 +863,8 @@ export function mountWorkspaces(ws, o){
   // another tab changed the shared screen after this one did (or no tab did since this one opened): not this tab's chart
   const otherTab = !!stamp && stamp !== myTab;
   // a layout opened by the address (/charts/<ID>, ?layout=) stays on screen in the open workspace, like opening it from the menu
-  const foreign = !!saved && !L.fromLink && (noScreen || otherTab || (typeof scr === 'string' && scr !== ix.active && !!C.find(ix, scr)) || (!!lay && ix.items.some((x) => x.id !== ix.active && (x.layoutId === lay || x.wsDoc === lay))));
+  // (the address named a layout that could not be opened: the screen is not that workspace's, show its own saved chart)
+  const foreign = !!saved && !L.fromLink && (!!owner || noScreen || otherTab || (typeof scr === 'string' && scr !== ix.active && !!C.find(ix, scr)) || (!!lay && ix.items.some((x) => x.id !== ix.active && (x.layoutId === lay || x.wsDoc === lay))));
   // an older version tracked the workspace's own doc as "the open layout": stop (the screen stays as it is)
   if (lay && L.isWs(lay)) L.forget();
   if (!foreign) { syncLayout(cur()); markScreen(ix.active); stampMe(); }
@@ -802,13 +893,20 @@ export function mountWorkspaces(ws, o){
       setTimeout(backfill, 600);
       remoteRead = true;
       const r = d && d.exists ? C.sanitize((d.data() || {}).index) : null;
-      if (!r || C.pickNewer(ix, r) !== r) { persist(); return; }
-      const here = C.find(r, ix.active);
-      if (!here && L.fromLink) { ix = r; const it = cur(); if (it) { it.closed = false; syncLayout(it); markScreen(it.id); } persist(); return; }   // keep the linked layout on screen
-      if (here) { r.active = ix.active; here.closed = false; Object.assign(here, { layoutId: cur().layoutId, layoutName: cur().layoutName, shared: cur().shared, wsDoc: here.wsDoc || cur().wsDoc }); ix = r; persist(); return; }
-      const target = r.active; ix = r; ix.active = null;
-      // the screen belongs to a workspace this account no longer has: open the account's active one (no save: it was not ours)
-      (async () => { const it = C.find(ix, target) || ix.items[0]; ix.active = it.id; const x = await load(it); L.adopt(x.doc, x.meta); markScreen(it.id); persist(); })();
+      if (!r) { persist(); return; }
+      if (saved || ix.t) {   // this browser has its own list: merge the account copy in (per workspace), keep this window's workspace open
+        absorb(r, true); persist(); return;
+      }
+      // a new device (or the Windows app's first run): the account list is the list
+      ix = r; seed();
+      const lo = ownerOf(ix, linkLay);
+      if (lo && L.fromLink) { ix.active = lo.id; lo.closed = false; syncLayout(lo); markScreen(lo.id); persist(); return; }   // the address's layout stays on screen, in its own workspace
+      if (lo) ix.active = lo.id;   // its layout could not be read: that workspace opens with its own saved chart (below)
+      else if (L.fromLink) { const it = cur(); it.closed = false; syncLayout(it); markScreen(it.id); persist(); return; }   // a layout link: shown in the open workspace
+      else if (urlW && C.find(ix, urlW)) ix.active = urlW;
+      // the screen is not one of this account's workspaces: open the account's active one (no save: it was not ours)
+      busy = (async () => { const it = cur(); it.closed = false; const x = await load(it); if (ix.active !== it.id) return; L.adopt(x.doc, x.meta); syncLayout(it); docs.set(it.id, x.doc); markScreen(it.id); stampMe(); persist(); })()
+        .catch((e) => console.warn('TradeZoro: workspace doc', e)).finally(() => { busy = null; });
     }).catch((e) => console.warn('TradeZoro: workspaces sync', e && e.code));
   }
 
@@ -831,7 +929,11 @@ export function mountWorkspaces(ws, o){
 
   // "Set as default workspace": it opens on load (once, after the account copy is read)
   let defDone = false;
-  const bootDefault = () => { if (defDone) return; defDone = true; if (L.fromLink && !new URLSearchParams(location.search).get('ws')) return; const q = new URLSearchParams(location.search).get('ws'), to = C.find(ix, q) ? q : ix.def;   // ?ws=<id> (Open in new window) beats the default
+  // (only for a window that does not already have its own workspace: a reload, a restored tab or app window, or a layout
+  // address keeps the workspace it had; before, a reload of workspace 2 jumped back to the default)
+  const ownWs = !!(saved && ((tabId && C.find(ix, tabId)) || (urlW && C.find(ix, urlW)) || owner));
+  const bootDefault = () => { if (defDone) return; defDone = true; if (L.fromLink && !new URLSearchParams(location.search).get('ws')) return;
+    if (ownWs && !new URLSearchParams(location.search).get('ws')) return; const q = new URLSearchParams(location.search).get('ws'), to = C.find(ix, q) ? q : ix.def;   // ?ws=<id> (Open in new window) beats the default
     if (ix && to && to !== ix.active && C.find(ix, to)) switchTo(to); };
   if (user()) setTimeout(() => { if (!defDone) bootDefault(); }, 2500); else setTimeout(bootDefault, 0);
 

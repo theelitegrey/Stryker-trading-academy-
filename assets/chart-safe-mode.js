@@ -15,9 +15,36 @@ const MAX_AGE_MS = 864e5;   // a mark older than a day is not a crash loop
 const phone = () => {
   try { return window.innerWidth <= 700 || matchMedia('(pointer: coarse)').matches || (navigator.deviceMemory && navigator.deviceMemory <= 4); } catch (e) { return false; }
 };
-const getMark = () => { try { const m = JSON.parse(localStorage.getItem(MARK) || 'null'); return m && Date.now() - m.t < MAX_AGE_MS ? m : null; } catch (e) { return null; } };
-const setMark = () => { try { localStorage.setItem(MARK, JSON.stringify({ t: Date.now() })); } catch (e) {} };
-const clearMark = () => { try { localStorage.removeItem(MARK); } catch (e) {} };
+// Two tabs / app windows share localStorage. Before, one shared mark meant a second window opened while the first was
+// still loading (its mark set, not yet stable) started in SAFE MODE and saved nothing (20 Nov: two workspaces at once).
+// Now each tab keeps its own entry, keyed by a per-tab id (sessionStorage), and a new tab that finds another tab's
+// entry asks on a BroadcastChannel whether that tab is alive: a crashed tab cannot answer, a living one does.
+const PING_MS = 250;
+const TAB = (() => { try { let id = sessionStorage.getItem('stryker_tab_id'); if (!id) { id = Math.random().toString(36).slice(2, 10); sessionStorage.setItem('stryker_tab_id', id); } return id; } catch (e) { return Math.random().toString(36).slice(2, 10); } })();
+const readMarks = () => {
+  try {
+    const m = JSON.parse(localStorage.getItem(MARK) || 'null');
+    if (!m || typeof m !== 'object') return {};
+    if (typeof m.t === 'number') return { _old: { t: m.t } };   // the older single mark
+    return m;
+  } catch (e) { return {}; }
+};
+const writeMarks = (m) => { try { if (Object.keys(m).length) localStorage.setItem(MARK, JSON.stringify(m)); else localStorage.removeItem(MARK); } catch (e) {} };
+const liveMarks = () => { const now = Date.now(), m = readMarks(); for (const id of Object.keys(m)) if (!m[id] || typeof m[id].t !== 'number' || now - m[id].t >= MAX_AGE_MS) delete m[id]; return m; };
+const setMark = (alive) => { const m = liveMarks(); for (const id of Object.keys(m)) if (id !== TAB && !(alive && alive.has(id))) delete m[id]; m[TAB] = { t: Date.now() }; writeMarks(m); };
+const clearMark = () => { const m = readMarks(); delete m[TAB]; writeMarks(m); };
+let chan = null;
+try { chan = new BroadcastChannel('stryker_chart_alive'); chan.onmessage = (e) => { if (e.data && e.data.q && e.data.from !== TAB) chan.postMessage({ a: TAB }); }; } catch (e) { chan = null; }
+// the other tabs that answer within PING_MS (no channel: none can be asked, so every other entry counts as alive)
+const askAlive = (ids) => new Promise((res) => {
+  if (!ids.length) return res(new Set());
+  if (!chan) return res(new Set(ids));
+  const got = new Set();
+  const on = (e) => { if (e.data && e.data.a) got.add(e.data.a); };
+  chan.addEventListener('message', on);
+  chan.postMessage({ q: 1, from: TAB });
+  setTimeout(() => { chan.removeEventListener('message', on); res(got); }, PING_MS);
+});
 
 // what safe mode pauses, per chart: Pine scripts (ext 'stryker.pine') and native indicators (indicators.natives)
 function pausedOf(doc){
@@ -42,10 +69,14 @@ function stripped(doc){
 export function createSafeMode(persistKey){
   const S = window.__stkSafe = { active: false, paused: [], phone: phone() };
   if (!S.phone) return Object.assign(S, { storage: undefined, strip: (d) => d, started(){}, mount(){} });
-  S.active = !!getMark();
+  // A load whose own entry (same tab, reloaded) or a dead tab's entry is still set never finished: safe mode.
+  const marks = liveMarks(), others = Object.keys(marks).filter((id) => id !== TAB);
+  S.ready = (marks[TAB] ? Promise.resolve(new Set(others)) : askAlive(others)).then((alive) => {
+    S.active = !!marks[TAB] || others.some((id) => !alive.has(id));
+    // Every load on a phone arms its mark; started() clears it after the chart has been stable for 20 s.
+    setMark(alive);
+  });
   window.addEventListener('pagehide', () => { if (!S.active) clearMark(); });
-  // Every load on a phone arms the mark; started() clears it after the chart has been stable for 20 s.
-  setMark();
 
   S.strip = (doc) => {
     if (!S.active || !doc || !Array.isArray(doc.charts)) return doc;

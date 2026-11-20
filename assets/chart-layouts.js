@@ -206,6 +206,7 @@ export function mountLayouts(ws, o){
   let migrating = null;    // a signed-out chart's link id, kept in the address bar until it moves to the account
   let pendingLink = null;  // a /charts/<ID> link a signed-out visitor opened: kept so sign-in comes back to it
   let fromLink = false;    // this page load opened a layout named by its address (/charts/<ID>, ?layout=, ?openlayout=)
+  let linkWant = null;     // this member's own layout id the address named (set even when it could not be opened)
 
   // ---- toolbar button + menu ----
   const btn = el('button', { type: 'button', class: 'stkc-btn stkl-btn', id: 'stkl-btn', 'aria-haspopup': 'true', 'aria-expanded': 'false',
@@ -629,7 +630,10 @@ export function mountLayouts(ws, o){
     ui.applySaved({ state: doc });
   }
 
-  async function openById(id){
+  // o.boot: opened by the address while the page starts (/charts/<ID>, ?openlayout=). A failed read is tried once more and then
+  // left quietly: the workspace (assets/chart-workspaces.js) shows its own saved chart instead, so a reopened window never
+  // greets the member with an error (bug 20 Nov: "Could not open the layout." + "Unsaved layout" on reopening the platform).
+  async function openById(id, o){
     if (viewing) endViewing();
     if (cur && dirty && auto()) await saveNow(false);
     try {
@@ -638,10 +642,14 @@ export function mountLayouts(ws, o){
       const x = d.data();
       if (x.kind === 'workspace' || isWs(id)) { wsKind.add(id); dropRecent(id); toast('That is a workspace, not a layout. Open it from the Workspaces menu.', 'error'); return; }
       const doc = await decodeState(x.state);
-      if (!doc) { toast('That layout could not be read.', 'error'); return; }
+      if (!doc) { if (!(o && o.boot)) toast('That layout could not be read.', 'error'); return; }
       apply(doc);
       setCur({ id, name: x.name, shared: !!x.shared, symbol: x.symbol, interval: x.interval, updatedAt: tsMs(x.updatedAt) });
-    } catch (e) { console.warn('TradeZoro: layout open', e); toast('Could not open the layout.', 'error'); }
+    } catch (e) {
+      console.warn('TradeZoro: layout open', e && e.code, e);
+      if (o && o.boot) { if (!o.again) { await new Promise((r) => setTimeout(r, 1200)); return openById(id, { boot: true, again: true }); } return; }
+      toast('Could not open the layout.', 'error');
+    }
   }
   function dropRecent(id){ lsSet(K.recent(), lsGet(K.recent(), []).filter((x) => x && x.id !== id)); }
 
@@ -746,8 +754,10 @@ export function mountLayouts(ws, o){
     if (m.ownerUid === user().uid) {
       slugs.set(m.lid, sl);
       if (cur && cur.id === m.lid) { cur.slug = sl; syncUrl(); return true; }
-      try { const d = await col().doc(m.lid).get(); if (!d.exists) return gone(); } catch (e) { return gone(); }
-      await openById(m.lid);
+      linkWant = m.lid;   // even if it cannot be read now, workspaces know which layout (so which workspace) the address meant
+      let d = null; try { d = await col().doc(m.lid).get(); } catch (e) { d = null; }   // not reachable yet: openById tries again quietly
+      if (d && !d.exists) return gone();
+      await openById(m.lid, { boot: true });
       return !!(cur && cur.id === m.lid);
     }
     if (await openShared(m.lid, sl, m.ownerUid)) return true;
@@ -919,7 +929,7 @@ export function mountLayouts(ws, o){
     else if (!sl && /^\/charts\/[^/]+\/?$/.test(location.pathname)) toast('That layout isn\'t available', 'info');   // /charts/<not an id>
     if (sid) await openShared(sid);
     let ol = null; try { ol = new URL(location.href).searchParams.get('openlayout'); } catch (e) {}   // the dashboard's "Open" on a saved layout
-    if (!sid && !linked && ol && /^[A-Za-z0-9]{20,40}$/.test(ol) && user()) { await openById(ol); linked = !!(cur && cur.id === ol); }
+    if (!sid && !linked && ol && /^[A-Za-z0-9]{20,40}$/.test(ol) && user()) { linkWant = ol; await openById(ol, { boot: true }); linked = !!(cur && cur.id === ol); }
     if (sid && (viewing || cur)) linked = true;
     fromLink = linked;   // the address asked for this layout: workspaces (assets/chart-workspaces.js) keep it on screen
     let al = null; try { al = new URL(location.href).searchParams.get('applylayout'); } catch (e) {}
@@ -944,7 +954,7 @@ export function mountLayouts(ws, o){
   lib = libApi;
 
   const api = { detach, saveNow, adopt, fetchDoc, forget, wsWrite, wsMark, wsFind, setHidden, isWs, booted: booted.catch(() => {}), saveAsNew, renameCur, renameId, duplicate, applyForeign, library: libApi, createNew, openById, remove, setShared, list, openShared, leaveShared, csv: () => chartCsv(ws.active, ws.timezone, true),
-    get current(){ return cur; }, get viewing(){ return viewing; }, get dirty(){ return dirty; }, linkOf, ensureSlug, openLink, syncUrl, get fromLink(){ return fromLink; } };
+    get current(){ return cur; }, get viewing(){ return viewing; }, get dirty(){ return dirty; }, linkOf, ensureSlug, openLink, syncUrl, get fromLink(){ return fromLink; }, get linkWant(){ return linkWant; } };
   window.STRYKER_LAYOUTS = api;
   return api;
 }

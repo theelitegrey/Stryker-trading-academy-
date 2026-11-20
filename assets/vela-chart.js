@@ -843,7 +843,7 @@ function lateLists(provider){
 
   // Crash-loop guard (assets/chart-safe-mode.js): phones only; a load that never finished opens the next one in safe mode.
   let Safe = { phone: false, active: false };
-  if (!BT) { try { Safe = (await import('./chart-safe-mode.js?v=1162')).createSafeMode(PERSIST_KEY); } catch (e) { console.warn('TradeZoro: safe mode', e); } }
+  if (!BT) { try { Safe = (await import('./chart-safe-mode.js?v=1162')).createSafeMode(PERSIST_KEY); if (Safe.ready) await Safe.ready; } catch (e) { console.warn('TradeZoro: safe mode', e); } }   // (ready: asks other open tabs if they are alive, max 250 ms, only when one has a mark)
   let FormulaMod = null, FormulaNorm = null;
   try { [FormulaMod, { normalizeSymbol: FormulaNorm }] = await Promise.all([import('./chart-formula.js?v=1162'), import('./chart-watchlist.js?v=1162')]); } catch (e) { console.warn('TradeZoro: formula', e); }
   try {
